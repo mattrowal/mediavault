@@ -3,6 +3,50 @@
 // ===================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Auth State
+  let currentUser = null;
+  let csrfToken = null;
+
+  function getCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const match = document.cookie.match(/(?:^|;\s*)mediavault_csrf=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  // Intercept window.fetch to automatically include CSRF token & handle auth/rate limits
+  const originalFetch = window.fetch;
+  window.fetch = async function(input, init = {}) {
+    const opts = { ...init };
+    opts.headers = { ...opts.headers };
+
+    const method = (opts.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+      const token = getCsrfToken();
+      if (token && !opts.headers['x-csrf-token']) {
+        opts.headers['x-csrf-token'] = token;
+      }
+    }
+
+    const res = await originalFetch(input, opts);
+    const urlStr = typeof input === 'string' ? input : input.url || '';
+
+    if (res.status === 401 && !urlStr.includes('/api/auth/me')) {
+      if (currentUser) {
+        showToast('Your session has expired. Please sign in.', 'warning');
+      }
+      currentUser = null;
+      updateAuthUI();
+      openAuthModal('login');
+    } else if (res.status === 429) {
+      try {
+        const clone = await res.clone().json();
+        showToast(clone.error || 'Rate limit exceeded.', 'error');
+      } catch {}
+    }
+
+    return res;
+  };
+
   // Application State
   let currentView = 'dashboard';
   let mediaFilterType = 'all';
@@ -12,6 +56,21 @@ document.addEventListener('DOMContentLoaded', () => {
   let booksFilterOwned = 'all';
   let booksFilterStatus = 'all';
   let booksSearchQuery = '';
+
+  // Auth DOM Elements
+  const modalAuth = document.getElementById('modal-auth');
+  const btnOpenAuthModal = document.getElementById('btn-open-auth-modal');
+  const btnCloseAuthModal = document.getElementById('btn-close-auth-modal');
+  const userLoggedInBadge = document.getElementById('user-logged-in-badge');
+  const userDisplayName = document.getElementById('user-display-name');
+  const btnLogout = document.getElementById('btn-logout');
+  const authCalloutBanner = document.getElementById('auth-callout-banner');
+  const btnCalloutLogin = document.getElementById('btn-callout-login');
+  const authTabLogin = document.getElementById('auth-tab-login');
+  const authTabRegister = document.getElementById('auth-tab-register');
+  const authAlertBox = document.getElementById('auth-alert-box');
+  const formLogin = document.getElementById('form-login');
+  const formRegister = document.getElementById('form-register');
 
   // DOM Elements
   const tabs = document.querySelectorAll('.tab-btn');
@@ -52,7 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   setupEventListeners();
-  loadAllData();
+  setupAuthEventListeners();
+  checkAuthStatus();
 
   // ===================================================
   // NAVIGATION & TAB SWITCHING
@@ -1346,5 +1406,204 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.style.transition = 'all 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 4000);
+  }
+
+  // ===================================================
+  // AUTHENTICATION LOGIC & MODAL MANAGEMENT
+  // ===================================================
+
+  async function checkAuthStatus() {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+
+      if (data.loggedIn && data.user) {
+        currentUser = data.user;
+        csrfToken = data.csrfToken;
+      } else {
+        currentUser = null;
+        csrfToken = data.csrfToken;
+      }
+    } catch {
+      currentUser = null;
+    }
+
+    updateAuthUI();
+
+    if (currentUser) {
+      loadAllData();
+    }
+  }
+
+  function updateAuthUI() {
+    if (currentUser) {
+      // Authenticated view
+      btnOpenAuthModal?.classList.add('hidden');
+      userLoggedInBadge?.classList.remove('hidden');
+      if (userDisplayName) userDisplayName.textContent = currentUser.username;
+      authCalloutBanner?.classList.add('hidden');
+    } else {
+      // Unauthenticated view
+      btnOpenAuthModal?.classList.remove('hidden');
+      userLoggedInBadge?.classList.add('hidden');
+      authCalloutBanner?.classList.remove('hidden');
+
+      // Reset dashboard stats to 0
+      if (statNewEpisodes) statNewEpisodes.textContent = '0';
+      if (statSeriesWatching) statSeriesWatching.textContent = '0';
+      if (statMoviesCompleted) statMoviesCompleted.textContent = '0';
+      if (statBooksOwned) statBooksOwned.textContent = '0';
+      if (statBooksOwnedUnread) statBooksOwnedUnread.textContent = '0';
+      if (statBooksCompleted) statBooksCompleted.textContent = '0';
+
+      // Clear lists
+      if (dashNewEpisodesList) dashNewEpisodesList.innerHTML = '';
+      if (dashWatchingList) dashWatchingList.innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span><h4>Sign in to view your watched series</h4></div>';
+      if (dashReadingList) dashReadingList.innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span><h4>Sign in to view your books</h4></div>';
+      if (mediaContainer) mediaContainer.innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span><h4>Sign in to view your movies and series</h4></div>';
+      if (booksContainer) booksContainer.innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span><h4>Sign in to view your book library</h4></div>';
+      if (aiRecommendationsContainer) aiRecommendationsContainer.innerHTML = '<div class="empty-state"><span class="empty-icon">🔒</span><h4>Sign in to get personalized recommendations</h4></div>';
+    }
+  }
+
+  function openAuthModal(tab = 'login') {
+    if (!modalAuth) return;
+    modalAuth.classList.remove('hidden');
+    if (authAlertBox) {
+      authAlertBox.classList.add('hidden');
+      authAlertBox.textContent = '';
+    }
+    switchAuthTab(tab);
+  }
+
+  function closeAuthModal() {
+    if (!modalAuth) return;
+    modalAuth.classList.add('hidden');
+    if (authAlertBox) {
+      authAlertBox.classList.add('hidden');
+      authAlertBox.textContent = '';
+    }
+  }
+
+  function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    authTabLogin?.classList.toggle('active', isLogin);
+    authTabRegister?.classList.toggle('active', !isLogin);
+    formLogin?.classList.toggle('hidden', !isLogin);
+    formRegister?.classList.toggle('hidden', isLogin);
+    if (authAlertBox) {
+      authAlertBox.classList.add('hidden');
+      authAlertBox.textContent = '';
+    }
+  }
+
+  function setupAuthEventListeners() {
+    btnOpenAuthModal?.addEventListener('click', () => openAuthModal('login'));
+    btnCalloutLogin?.addEventListener('click', () => openAuthModal('login'));
+    btnCloseAuthModal?.addEventListener('click', closeAuthModal);
+
+    modalAuth?.addEventListener('click', (e) => {
+      if (e.target === modalAuth) closeAuthModal();
+    });
+
+    authTabLogin?.addEventListener('click', () => switchAuthTab('login'));
+    authTabRegister?.addEventListener('click', () => switchAuthTab('register'));
+
+    // Handle Login Form Submit
+    formLogin?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usernameInput = document.getElementById('login-username');
+      const passwordInput = document.getElementById('login-password');
+
+      const username = usernameInput?.value?.trim();
+      const password = passwordInput?.value;
+
+      if (!username || !password) return;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed');
+        }
+
+        currentUser = data.user;
+        csrfToken = data.csrfToken;
+        closeAuthModal();
+        updateAuthUI();
+        loadAllData();
+        showToast(`Welcome back, ${currentUser.username}!`, 'success');
+        formLogin.reset();
+      } catch (err) {
+        if (authAlertBox) {
+          authAlertBox.textContent = err.message;
+          authAlertBox.classList.remove('hidden');
+        }
+      }
+    });
+
+    // Handle Register Form Submit
+    formRegister?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usernameInput = document.getElementById('reg-username');
+      const passwordInput = document.getElementById('reg-password');
+      const confirmInput = document.getElementById('reg-password-confirm');
+
+      const username = usernameInput?.value?.trim();
+      const password = passwordInput?.value;
+      const confirmPassword = confirmInput?.value;
+
+      if (!username || !password) return;
+
+      if (password !== confirmPassword) {
+        if (authAlertBox) {
+          authAlertBox.textContent = 'Passwords do not match.';
+          authAlertBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Registration failed');
+        }
+
+        currentUser = data.user;
+        csrfToken = data.csrfToken;
+        closeAuthModal();
+        updateAuthUI();
+        loadAllData();
+        showToast(`Account created! Welcome, ${currentUser.username}!`, 'success');
+        formRegister.reset();
+      } catch (err) {
+        if (authAlertBox) {
+          authAlertBox.textContent = err.message;
+          authAlertBox.classList.remove('hidden');
+        }
+      }
+    });
+
+    // Handle Logout
+    btnLogout?.addEventListener('click', async () => {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch {}
+      currentUser = null;
+      csrfToken = null;
+      updateAuthUI();
+      showToast('Logged out successfully.', 'info');
+    });
   }
 });

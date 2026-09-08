@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import {
@@ -17,8 +18,25 @@ import {
   updateBook,
   deleteBook,
   getDashboardStats,
-  getUserLibraryProfile
+  getUserLibraryProfile,
+  createUser,
+  getUserByUsername,
+  getUserById,
+  purgeExpiredSessions
 } from './db.js';
+import {
+  hashPassword,
+  verifyPassword,
+  createSession,
+  destroySession,
+  cookieParserMiddleware,
+  setSessionCookies,
+  clearSessionCookies,
+  requireAuth,
+  csrfProtection,
+  authLimiter,
+  aiLimiter
+} from './auth.js';
 
 dotenv.config();
 
@@ -28,8 +46,42 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configure specific reverse proxy trust (e.g., 1 for single reverse proxy like AWS App Runner or Nginx)
+// Avoid setting to unrestricted 'true', which allows IP header spoofing
+const trustProxySetting = process.env.TRUST_PROXY || (process.env.NODE_ENV === 'production' ? 1 : 'loopback');
+app.set('trust proxy', trustProxySetting === '1' ? 1 : trustProxySetting);
+
+// Body and Cookie Parsers
 app.use(express.json());
+app.use(cookieParserMiddleware);
+
+// Ensure a CSRF token cookie exists on GET requests so frontend can read it
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.cookies?.mediavault_csrf) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const csrfToken = crypto.randomBytes(24).toString('hex');
+    res.cookie('mediavault_csrf', csrfToken, {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+    if (!req.cookies) req.cookies = {};
+    req.cookies.mediavault_csrf = csrfToken;
+  }
+  next();
+});
+
+// Enforce CSRF protection for all state-changing methods (POST, PUT, DELETE, PATCH)
+app.use('/api', csrfProtection);
+
+// Serve static frontend assets
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Periodic cleanup of expired sessions
+purgeExpiredSessions();
+setInterval(purgeExpiredSessions, 60 * 60 * 1000).unref();
 
 // Initialize Google Gemini AI client if API key is provided
 let aiClient = null;
@@ -72,7 +124,7 @@ async function fetchTVMazeDetails(tvmazeId) {
 }
 
 // ==========================================
-// HEALTH CHECK (AWS Deployment Readiness)
+// HEALTH CHECK (AWS Deployment Readiness - Public)
 // ==========================================
 app.get('/api/health', (req, res) => {
   res.json({
@@ -80,16 +132,153 @@ app.get('/api/health', (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
     geminiConfigured: Boolean(aiClient),
-    environment: process.env.NODE_ENV || 'production'
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
 // ==========================================
-// DASHBOARD STATS
+// AUTHENTICATION & SESSION ENDPOINTS
 // ==========================================
-app.get('/api/stats', (req, res) => {
+
+// Register a new user
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const stats = getDashboardStats();
+    const { username, password } = req.body || {};
+
+    if (!username || typeof username !== 'string' || username.trim().length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters long.' });
+    }
+
+    if (username.trim().length > 30) {
+      return res.status(400).json({ error: 'Username cannot exceed 30 characters.' });
+    }
+
+    // Alphanumeric with underscores only
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores.' });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
+
+    // Check if username is already taken
+    const existing = getUserByUsername(username.trim());
+    if (existing) {
+      return res.status(409).json({ error: 'Username is already taken. Please choose another.' });
+    }
+
+    // Hash password asynchronously with unique salt
+    const { hash, salt } = await hashPassword(password);
+    const newUser = createUser(username.trim(), hash, salt);
+
+    // Session renewal: invalidate old session if one was present
+    if (req.cookies?.mediavault_sid) {
+      destroySession(req.cookies.mediavault_sid);
+    }
+
+    // Create session and set cookies
+    const session = createSession(newUser.id);
+    setSessionCookies(res, session.sessionId, session.csrfToken);
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      user: { id: newUser.id, username: newUser.username },
+      csrfToken: session.csrfToken
+    });
+  } catch (err) {
+    console.error('Registration error:', err.message);
+    res.status(500).json({ error: 'Failed to register account: ' + err.message });
+  }
+});
+
+// Log in an existing user
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required.' });
+    }
+
+    const user = getUserByUsername(username.trim());
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+
+    // Verify password hash asynchronously
+    const isMatch = await verifyPassword(password, user.salt, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+
+    // Session renewal: invalidate any previous session to avoid session fixation
+    if (req.cookies?.mediavault_sid) {
+      destroySession(req.cookies.mediavault_sid);
+    }
+
+    // Create a new session
+    const session = createSession(user.id);
+    setSessionCookies(res, session.sessionId, session.csrfToken);
+
+    res.json({
+      success: true,
+      message: 'Logged in successfully',
+      user: { id: user.id, username: user.username },
+      csrfToken: session.csrfToken
+    });
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(500).json({ error: 'Login failed: ' + err.message });
+  }
+});
+
+// Log out user
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    const sessionId = req.cookies?.mediavault_sid;
+    if (sessionId) {
+      destroySession(sessionId);
+    }
+    clearSessionCookies(res);
+    res.json({ success: true, message: 'Logged out successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get current session state & user info
+app.get('/api/auth/me', (req, res) => {
+  const sessionId = req.cookies?.mediavault_sid;
+  if (!sessionId) {
+    return res.json({ loggedIn: false, csrfToken: req.cookies?.mediavault_csrf || null });
+  }
+
+  const session = findSession(sessionId);
+  if (!session || session.expires_at < Date.now()) {
+    clearSessionCookies(res);
+    return res.json({ loggedIn: false, csrfToken: req.cookies?.mediavault_csrf || null });
+  }
+
+  res.json({
+    loggedIn: true,
+    user: { id: session.user_id, username: session.username },
+    csrfToken: session.csrf_token
+  });
+});
+
+// Provide/refresh CSRF token
+app.get('/api/auth/csrf', (req, res) => {
+  res.json({ csrfToken: req.cookies?.mediavault_csrf || null });
+});
+
+// ==========================================
+// DASHBOARD STATS (Scoped to Logged-in User)
+// ==========================================
+app.get('/api/stats', requireAuth, (req, res) => {
+  try {
+    const stats = getDashboardStats(req.user.id);
     res.json(stats);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -97,12 +286,12 @@ app.get('/api/stats', (req, res) => {
 });
 
 // ==========================================
-// CENTRAL GENAI FEATURE: PERSONALIZED RECOMMENDATIONS
+// GENAI RECOMMENDATIONS (Protected, Rate-Limited, Scoped to req.user.id)
 // ==========================================
-app.post('/api/ai/recommendations', async (req, res) => {
+app.post('/api/ai/recommendations', requireAuth, aiLimiter, async (req, res) => {
   try {
     const { focus } = req.body || {}; // 'all', 'media', or 'books'
-    const profile = getUserLibraryProfile();
+    const profile = getUserLibraryProfile(req.user.id);
 
     const hasLibraryData = (profile.movies.length > 0 || profile.shows.length > 0 || profile.books.length > 0);
 
@@ -190,24 +379,24 @@ ${librarySummary}
 });
 
 // ==========================================
-// MEDIA (Movies & TV Series) ENDPOINTS
+// MEDIA (Movies & TV Series) ENDPOINTS - Scoped to req.user.id
 // ==========================================
 
 // Get media with filtering
-app.get('/api/media', (req, res) => {
+app.get('/api/media', requireAuth, (req, res) => {
   try {
     const { type, status, search } = req.query;
-    const items = getAllMedia({ type, status, search });
+    const items = getAllMedia(req.user.id, { type, status, search });
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get single media
-app.get('/api/media/:id', (req, res) => {
+// Get single media (ownership checked)
+app.get('/api/media/:id', requireAuth, (req, res) => {
   try {
-    const item = getMediaById(req.params.id);
+    const item = getMediaById(req.params.id, req.user.id);
     if (!item) return res.status(404).json({ error: 'Media not found' });
     res.json(item);
   } catch (err) {
@@ -216,7 +405,7 @@ app.get('/api/media/:id', (req, res) => {
 });
 
 // Add new media
-app.post('/api/media', async (req, res) => {
+app.post('/api/media', requireAuth, async (req, res) => {
   try {
     const data = { ...req.body };
 
@@ -233,29 +422,29 @@ app.post('/api/media', async (req, res) => {
       }
     }
 
-    const created = addMedia(data);
+    const created = addMedia(data, req.user.id);
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update media
-app.put('/api/media/:id', (req, res) => {
+// Update media (ownership checked)
+app.put('/api/media/:id', requireAuth, (req, res) => {
   try {
-    const updated = updateMedia(req.params.id, req.body);
-    if (!updated) return res.status(404).json({ error: 'Media not found' });
+    const updated = updateMedia(req.params.id, req.user.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Media not found or not authorized' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Single-show episode refresh from TVMaze API (real external data, no AI guesses)
-app.post('/api/media/:id/refresh-episodes', async (req, res) => {
+// Single-show episode refresh from TVMaze API (ownership checked)
+app.post('/api/media/:id/refresh-episodes', requireAuth, async (req, res) => {
   try {
-    const item = getMediaById(req.params.id);
-    if (!item) return res.status(404).json({ error: 'Media not found' });
+    const item = getMediaById(req.params.id, req.user.id);
+    if (!item) return res.status(404).json({ error: 'Media not found or not authorized' });
 
     if (item.type !== 'tv' || !item.external_id) {
       return res.json({ message: 'Not a trackable TV show', item });
@@ -266,7 +455,7 @@ app.post('/api/media/:id/refresh-episodes', async (req, res) => {
       return res.status(502).json({ error: 'Could not reach TVMaze API' });
     }
 
-    const updated = updateMedia(item.id, {
+    const updated = updateMedia(item.id, req.user.id, {
       latest_season: tvInfo.latest_season,
       latest_episode: tvInfo.latest_episode,
       latest_episode_name: tvInfo.latest_episode_name,
@@ -281,38 +470,38 @@ app.post('/api/media/:id/refresh-episodes', async (req, res) => {
   }
 });
 
-// Quick increment: +1 watched episode
-app.post('/api/media/:id/increment-episode', (req, res) => {
+// Quick increment: +1 watched episode (ownership checked)
+app.post('/api/media/:id/increment-episode', requireAuth, (req, res) => {
   try {
-    const updated = incrementMediaEpisode(req.params.id);
-    if (!updated) return res.status(404).json({ error: 'Media not found' });
+    const updated = incrementMediaEpisode(req.params.id, req.user.id);
+    if (!updated) return res.status(404).json({ error: 'Media not found or not authorized' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete media
-app.delete('/api/media/:id', (req, res) => {
+// Delete media (ownership checked)
+app.delete('/api/media/:id', requireAuth, (req, res) => {
   try {
-    const success = deleteMedia(req.params.id);
-    if (!success) return res.status(404).json({ error: 'Media not found' });
+    const success = deleteMedia(req.params.id, req.user.id);
+    if (!success) return res.status(404).json({ error: 'Media not found or not authorized' });
     res.json({ success: true, message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Bulk sync all series against TVMaze
-app.post('/api/media/sync-tv', async (req, res) => {
+// Bulk sync all series belonging to logged-in user against TVMaze
+app.post('/api/media/sync-tv', requireAuth, async (req, res) => {
   try {
-    const seriesList = getAllTVShowsWithExternalId();
+    const seriesList = getAllTVShowsWithExternalId(req.user.id);
     let updatedCount = 0;
 
     for (const item of seriesList) {
       const tvInfo = await fetchTVMazeDetails(item.external_id);
       if (tvInfo) {
-        updateMedia(item.id, {
+        updateMedia(item.id, req.user.id, {
           latest_season: tvInfo.latest_season,
           latest_episode: tvInfo.latest_episode,
           latest_episode_name: tvInfo.latest_episode_name,
@@ -331,24 +520,24 @@ app.post('/api/media/sync-tv', async (req, res) => {
 });
 
 // ==========================================
-// BOOKS ENDPOINTS (Separated Ownership & Reading Status)
+// BOOKS ENDPOINTS - Scoped to req.user.id
 // ==========================================
 
 // Get books with separate owned & status filters
-app.get('/api/books', (req, res) => {
+app.get('/api/books', requireAuth, (req, res) => {
   try {
     const { owned, status, search } = req.query;
-    const items = getAllBooks({ owned, status, search });
+    const items = getAllBooks(req.user.id, { owned, status, search });
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get single book
-app.get('/api/books/:id', (req, res) => {
+// Get single book (ownership checked)
+app.get('/api/books/:id', requireAuth, (req, res) => {
   try {
-    const item = getBookById(req.params.id);
+    const item = getBookById(req.params.id, req.user.id);
     if (!item) return res.status(404).json({ error: 'Book not found' });
     res.json(item);
   } catch (err) {
@@ -357,32 +546,32 @@ app.get('/api/books/:id', (req, res) => {
 });
 
 // Add book
-app.post('/api/books', (req, res) => {
+app.post('/api/books', requireAuth, (req, res) => {
   try {
-    const created = addBook(req.body);
+    const created = addBook(req.body, req.user.id);
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update book
-app.put('/api/books/:id', (req, res) => {
+// Update book (ownership checked)
+app.put('/api/books/:id', requireAuth, (req, res) => {
   try {
-    const updated = updateBook(req.params.id, req.body);
-    if (!updated) return res.status(404).json({ error: 'Book not found' });
+    const updated = updateBook(req.params.id, req.user.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Book not found or not authorized' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update reading progress
-app.post('/api/books/:id/progress', (req, res) => {
+// Update reading progress (ownership checked)
+app.post('/api/books/:id/progress', requireAuth, (req, res) => {
   try {
     const { current_page } = req.body;
-    const book = getBookById(req.params.id);
-    if (!book) return res.status(404).json({ error: 'Book not found' });
+    const book = getBookById(req.params.id, req.user.id);
+    if (!book) return res.status(404).json({ error: 'Book not found or not authorized' });
 
     const newPage = Math.max(0, Number(current_page) || 0);
     const updates = { current_page: newPage };
@@ -394,18 +583,18 @@ app.post('/api/books/:id/progress', (req, res) => {
       updates.status = 'reading';
     }
 
-    const updated = updateBook(req.params.id, updates);
+    const updated = updateBook(req.params.id, req.user.id, updates);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete book
-app.delete('/api/books/:id', (req, res) => {
+// Delete book (ownership checked)
+app.delete('/api/books/:id', requireAuth, (req, res) => {
   try {
-    const success = deleteBook(req.params.id);
-    if (!success) return res.status(404).json({ error: 'Book not found' });
+    const success = deleteBook(req.params.id, req.user.id);
+    if (!success) return res.status(404).json({ error: 'Book not found or not authorized' });
     res.json({ success: true, message: 'Book deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -413,11 +602,11 @@ app.delete('/api/books/:id', (req, res) => {
 });
 
 // ==========================================
-// EXTERNAL SEARCH PROXIES (TV, Movie, Book)
+// EXTERNAL SEARCH PROXIES (Protected with requireAuth)
 // ==========================================
 
-// TVMaze search for TV series (free, real-time data)
-app.get('/api/search/tv', async (req, res) => {
+// TVMaze search for TV series
+app.get('/api/search/tv', requireAuth, async (req, res) => {
   try {
     const q = req.query.q;
     if (!q || !q.trim()) return res.json([]);
@@ -447,7 +636,7 @@ app.get('/api/search/tv', async (req, res) => {
 });
 
 // OMDb movie search
-app.get('/api/search/movies', async (req, res) => {
+app.get('/api/search/movies', requireAuth, async (req, res) => {
   try {
     const q = req.query.q;
     if (!q || !q.trim()) return res.json([]);
@@ -478,7 +667,7 @@ app.get('/api/search/movies', async (req, res) => {
 });
 
 // Open Library book search
-app.get('/api/search/books', async (req, res) => {
+app.get('/api/search/books', requireAuth, async (req, res) => {
   try {
     const q = req.query.q;
     if (!q || !q.trim()) return res.json([]);
@@ -511,11 +700,16 @@ app.get('/api/search/books', async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`===========================================`);
-  console.log(`🎬 MediaVault Server is Running!`);
-  console.log(`🌐 Local URL: http://localhost:${PORT}`);
-  console.log(`🤖 Gemini GenAI: ${aiClient ? 'Active (gemini-3.6-flash)' : 'Not configured'}`);
-  console.log(`===========================================`);
-});
+// Start Server (only when run directly)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, () => {
+    console.log(`===========================================`);
+    console.log(`🎬 MediaVault Multi-User Server is Running!`);
+    console.log(`🌐 Local URL: http://localhost:${PORT}`);
+    console.log(`🤖 Gemini GenAI: ${aiClient ? 'Active (gemini-3.6-flash)' : 'Not configured'}`);
+    console.log(`🔒 Authentication: Server-Side Sessions + CSRF Protected`);
+    console.log(`===========================================`);
+  });
+}
+
+export default app;

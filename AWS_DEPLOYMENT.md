@@ -10,7 +10,10 @@ This comprehensive guide walks you through deploying **MediaVault** onto Amazon 
 ## 🔒 Security Best Practices
 
 - **Never commit `.env` or API keys to GitHub:** Always keep secrets in `.env` (which is in `.gitignore`) or set them as AWS Environment Variables.
-- **SQLite Persistence:** The database is saved at `data/media_vault.db`. When deploying on containers, mount a persistent volume so records survive container redeployments.
+- **SQLite Persistence & Backups:** The database is saved at `data/media_vault.db`. When deploying on containers, mount a persistent volume so records survive container redeployments. Run `npm run backup-db` to take consistent snapshots with WAL checkpoints.
+- **Multi-User HTTPS & Secure Cookies:** In production (`NODE_ENV=production`), session cookies (`mediavault_sid`) are automatically flagged with `HttpOnly`, `SameSite=Lax`, and `Secure` (HTTPS only).
+- **Reverse Proxy Trust (`TRUST_PROXY`):** Express is configured with `app.set('trust proxy', 1)` to trust only the immediate reverse proxy (Nginx or AWS App Runner / ALB), preventing IP spoofing from unrestricted trust.
+- **Legacy Record Migration:** Existing unassigned records start with `user_id = NULL` and are blocked from all web endpoints. Once you register your administrator account, assign your legacy items safely by running: `npm run claim-legacy <your_username>`.
 - **Health Check:** MediaVault includes a built-in healthcheck at `GET /api/health` that returns `200 OK` for AWS Load Balancers.
 
 ---
@@ -102,6 +105,7 @@ Inside `.env`, insert:
 PORT=3000
 NODE_ENV=production
 GEMINI_API_KEY=your_real_gemini_api_key_here
+TRUST_PROXY=1
 ```
 
 ### Step 4: Run with PM2 (Process Manager)
