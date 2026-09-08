@@ -1,0 +1,28 @@
+{
+  "name": "mediavault",
+  "version": "1.1.0",
+  "description": "Personal database to track movies, TV shows (with real-time episode monitoring via TVMaze), books (with separated ownership and reading statuses), and personalized GenAI recommendations powered by Google Gemini.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "media-tracker",
+    "series-tracker",
+    "movie-tracker",
+    "book-tracker",
+    "gemini-genai",
+    "sqlite",
+    "express",
+    "aws-ready"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^2.21.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

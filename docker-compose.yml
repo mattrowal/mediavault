@@ -1,0 +1,21 @@
+services:
+  mediavault:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mediavault-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/media_vault.db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OMDB_API_KEY=${OMDB_API_KEY}
+    volumes:
+      - mediavault_data:/app/data
+
+volumes:
+  mediavault_data:
+    driver: local

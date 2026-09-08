@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal media and book tracker. Track movies, TV episodes with real-time updates, books you own vs read, and get personalized GenAI suggestions.">
+  <title>MediaVault • Movies, Series, Books & AI Curator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header & Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-icon">🎬</span>
+        <div class="brand-text">
+          <h1>Media<span>Vault</span></h1>
+          <span class="brand-sub">Movies, Series & Book Library</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Main Navigation">
+        <button id="tab-dashboard" class="tab-btn active" data-view="dashboard">
+          <span class="tab-icon">📊</span> Dashboard
+        </button>
+        <button id="tab-media" class="tab-btn" data-view="media">
+          <span class="tab-icon">📺</span> Movies & Series
+          <span id="badge-new-episodes" class="nav-badge hidden">0</span>
+        </button>
+        <button id="tab-books" class="tab-btn" data-view="books">
+          <span class="tab-icon">📚</span> Books
+          <span id="badge-owned-books" class="nav-badge-sub hidden">0</span>
+        </button>
+        <button id="tab-ai" class="tab-btn tab-ai-btn" data-view="ai">
+          <span class="tab-icon">✨</span> AI Curator
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="nav-actions">
+        <button id="btn-sync-tv" class="btn btn-secondary" title="Check TVMaze for new aired episodes">
+          <span class="btn-icon">🔄</span> <span class="btn-text">Sync Episodes</span>
+        </button>
+        <button id="btn-open-add-modal" class="btn btn-primary">
+          <span class="btn-icon">➕</span> <span class="btn-text">Add Item</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Main Content Views -->
+  <main class="main-content">
+
+    <!-- ============================================== -->
+    <!-- VIEW 1: DASHBOARD -->
+    <!-- ============================================== -->
+    <section id="view-dashboard" class="view-section active">
+      <!-- Welcome Banner -->
+      <div class="welcome-card">
+        <div class="welcome-info">
+          <h2>Welcome back to your personal vault</h2>
+          <p>Track your watched movies, stay on top of new TV episodes, manage books you own vs. read, and discover AI-tailored recommendations.</p>
+        </div>
+        <div class="quick-actions-bar">
+          <button class="btn btn-sm btn-outline" id="dash-quick-add-serie">➕ Add Series</button>
+          <button class="btn btn-sm btn-outline" id="dash-quick-add-movie">➕ Add Movie</button>
+          <button class="btn btn-sm btn-outline" id="dash-quick-add-book">➕ Add Book</button>
+          <button class="btn btn-sm btn-ai-sparkle" id="dash-quick-goto-ai">✨ Get AI Suggestions</button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card" id="stat-card-episodes">
+          <div class="stat-icon alert-icon">⚡</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-new-episodes-count">0</span>
+            <span class="stat-label">Series with New Episodes</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon tv-icon">📺</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-series-watching">0</span>
+            <span class="stat-label">Active Series</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon movie-icon">🎬</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-movies-completed">0</span>
+            <span class="stat-label">Watched Movies</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon shelf-icon">🏠</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-owned">0</span>
+            <span class="stat-label">Books Owned at Home</span>
+          </div>
+        </div>
+
+        <div class="stat-card" id="stat-card-unread-owned">
+          <div class="stat-icon tbr-icon">📖</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-owned-unread">0</span>
+            <span class="stat-label">Owned & Unread (TBR)</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon read-icon">✅</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-completed">0</span>
+            <span class="stat-label">Books Read</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Series with Unwatched Released Episodes -->
+      <div class="section-block" id="dash-new-episodes-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="badge-pulsing">⚡ New Episodes Released</span>
+            <h3>Unwatched Episodes Waiting For You</h3>
+          </div>
+          <button id="btn-sync-dash" class="btn btn-sm btn-ghost">Refresh All Series 🔄</button>
+        </div>
+        <div id="dash-new-episodes-list" class="cards-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Two Columns: Currently Watching & Currently Reading -->
+      <div class="dashboard-split">
+        <div class="split-col">
+          <div class="section-header">
+            <h3>📺 Currently Watching</h3>
+            <button class="btn btn-sm btn-ghost" id="btn-goto-media">View All &rarr;</button>
+          </div>
+          <div id="dash-watching-list" class="compact-grid">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <div class="split-col">
+          <div class="section-header">
+            <h3>📖 Currently Reading</h3>
+            <button class="btn btn-sm btn-ghost" id="btn-goto-books">View Books &rarr;</button>
+          </div>
+          <div id="dash-reading-list" class="compact-grid">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 2: MOVIES & TV SERIES -->
+    <!-- ============================================== -->
+    <section id="view-media" class="view-section">
+      <div class="toolbar">
+        <div class="filter-group">
+          <label for="filter-media-type" class="sr-only">Type</label>
+          <div class="segmented-control" id="filter-media-type">
+            <button class="seg-btn active" data-val="all">All</button>
+            <button class="seg-btn" data-val="tv">📺 TV Series</button>
+            <button class="seg-btn" data-val="movie">🎬 Movies</button>
+          </div>
+
+          <label for="filter-media-status" class="sr-only">Status</label>
+          <div class="segmented-control" id="filter-media-status">
+            <button class="seg-btn active" data-val="all">All Statuses</button>
+            <button class="seg-btn" data-val="watching">Watching Now</button>
+            <button class="seg-btn" data-val="completed">Completed / Watched</button>
+            <button class="seg-btn" data-val="plan_to_watch">Plan to Watch</button>
+          </div>
+        </div>
+
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-media-input" placeholder="Search your movies & series...">
+        </div>
+      </div>
+
+      <!-- Cards Container -->
+      <div id="media-cards-container" class="cards-grid">
+        <!-- Loaded dynamically -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 3: BOOKS (Separate Ownership & Reading Status) -->
+    <!-- ============================================== -->
+    <section id="view-books" class="view-section">
+      <div class="toolbar">
+        <div class="filter-group">
+          <!-- Ownership Filter -->
+          <label for="filter-books-owned" class="sr-only">Ownership Status</label>
+          <div class="segmented-control" id="filter-books-owned">
+            <button class="seg-btn active" data-val="all">All Books</button>
+            <button class="seg-btn" data-val="1">🏠 Owned at Home</button>
+            <button class="seg-btn" data-val="0">Not Owned</button>
+            <button class="seg-btn" data-val="unread-owned">📖 Owned & Unread (TBR)</button>
+          </div>
+
+          <!-- Reading Status Filter -->
+          <label for="filter-books-status" class="sr-only">Reading Status</label>
+          <div class="segmented-control" id="filter-books-status">
+            <button class="seg-btn active" data-val="all">All Progress</button>
+            <button class="seg-btn" data-val="reading">📖 Reading Now</button>
+            <button class="seg-btn" data-val="completed">✅ Read (Completed)</button>
+            <button class="seg-btn" data-val="unread">⏳ Unread</button>
+            <button class="seg-btn" data-val="wishlist">🌟 Wishlist</button>
+          </div>
+        </div>
+
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-books-input" placeholder="Search by title or author...">
+        </div>
+      </div>
+
+      <!-- Cards Container -->
+      <div id="books-cards-container" class="cards-grid">
+        <!-- Loaded dynamically -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 4: GENAI CURATOR -->
+    <!-- ============================================== -->
+    <section id="view-ai" class="view-section">
+      <div class="ai-hero-card">
+        <div class="ai-hero-content">
+          <div class="ai-badge-header">
+            <span class="ai-pill">✨ Powered by Google Gemini</span>
+            <span class="ai-model-tag">gemini-3.6-flash</span>
+          </div>
+          <h2>Personalized AI Curator</h2>
+          <p>
+            The AI analyzes your logged watch history, ratings, series progress, and book collection to recommend what you should experience next, complete with personalized explanations grounded in your tastes.
+          </p>
+
+          <div class="ai-controls-bar">
+            <div class="ai-focus-select-wrap">
+              <label for="ai-focus-select">Recommendation Focus:</label>
+              <select id="ai-focus-select" class="ai-select">
+                <option value="all">Balanced (Movies, Series & Books)</option>
+                <option value="media">Movies & TV Series Only</option>
+                <option value="books">Books Only</option>
+              </select>
+            </div>
+
+            <button id="btn-generate-ai" class="btn btn-primary btn-ai-sparkle">
+              <span>✨</span> Generate Recommendations
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Recommendations Container -->
+      <div class="section-block">
+        <div class="section-header">
+          <div class="section-title">
+            <h3>Suggested For You</h3>
+          </div>
+          <span id="ai-timestamp" class="text-muted" style="font-size: 0.8rem;"></span>
+        </div>
+
+        <div id="ai-recommendations-container" class="cards-grid">
+          <div class="empty-state ai-empty-state">
+            <span class="empty-icon">✨</span>
+            <h4>Ready to discover your next favorite?</h4>
+            <p>Click "Generate Recommendations" above to let Gemini analyze your library.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: ADD ITEM (TV, MOVIE, BOOK, MANUAL) -->
+  <!-- ============================================== -->
+  <div id="modal-add" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-add-title">Add to Your Library</h2>
+        <button id="btn-close-add-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Modal Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" data-modal-tab="search-tv">📺 Search TV Series</button>
+        <button class="modal-tab-btn" data-modal-tab="search-movie">🎬 Search Movie</button>
+        <button class="modal-tab-btn" data-modal-tab="search-book">📚 Search Book</button>
+        <button class="modal-tab-btn" data-modal-tab="manual">✍️ Manual Entry</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- TAB 1: Search TV Series -->
+        <div id="modal-tab-search-tv" class="modal-tab-pane active">
+          <div class="search-box">
+            <input type="text" id="input-search-tv" placeholder="Enter series title (e.g. Severance, Breaking Bad, The Bear)...">
+            <button id="btn-search-tv" class="btn btn-primary">Search Series</button>
+          </div>
+          <div class="search-hint">💡 Real-time data from TVMaze API (automatically syncs latest aired episodes & dates).</div>
+          <div id="results-search-tv" class="search-results-list"></div>
+        </div>
+
+        <!-- TAB 2: Search Movie -->
+        <div id="modal-tab-search-movie" class="modal-tab-pane">
+          <div class="search-box">
+            <input type="text" id="input-search-movie" placeholder="Enter movie title (e.g. Inception, Interstellar, Dune)...">
+            <button id="btn-search-movie" class="btn btn-primary">Search Movie</button>
+          </div>
+          <div class="search-hint">💡 Retrieves official movie poster, release year, and details.</div>
+          <div id="results-search-movie" class="search-results-list"></div>
+        </div>
+
+        <!-- TAB 3: Search Book -->
+        <div id="modal-tab-search-book" class="modal-tab-pane">
+          <div class="search-box">
+            <input type="text" id="input-search-book" placeholder="Enter book title or author (e.g. Dune, 1984, Tolkien)...">
+            <button id="btn-search-book" class="btn btn-primary">Search Book</button>
+          </div>
+          <div class="search-hint">💡 Retrieves cover art, author, page count, and publication year via Open Library.</div>
+          <div id="results-search-book" class="search-results-list"></div>
+        </div>
+
+        <!-- TAB 4: Manual Entry -->
+        <div id="modal-tab-manual" class="modal-tab-pane">
+          <form id="form-manual-add" class="standard-form">
+            <div class="form-row">
+              <label for="manual-type">Type *</label>
+              <select id="manual-type" required>
+                <option value="tv">📺 TV Series</option>
+                <option value="movie">🎬 Movie</option>
+                <option value="book">📚 Book</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="manual-title">Title *</label>
+              <input type="text" id="manual-title" placeholder="Title of movie, series, or book" required>
+            </div>
+
+            <!-- Fields specific to Books -->
+            <div id="manual-book-fields" class="conditional-fields hidden">
+              <div class="form-row">
+                <label for="manual-author">Author</label>
+                <input type="text" id="manual-author" placeholder="Author's name">
+              </div>
+              <div class="form-cols">
+                <div class="form-row">
+                  <label for="manual-page-count">Total Page Count</label>
+                  <input type="number" id="manual-page-count" min="0" placeholder="e.g. 350">
+                </div>
+                <div class="form-row">
+                  <label for="manual-current-page">Current Page</label>
+                  <input type="number" id="manual-current-page" min="0" placeholder="0">
+                </div>
+              </div>
+              <div class="form-cols">
+                <div class="form-row">
+                  <label for="manual-format">Book Format</label>
+                  <select id="manual-format">
+                    <option value="Hardcover">Hardcover</option>
+                    <option value="Paperback">Paperback</option>
+                    <option value="E-Book">E-Book</option>
+                    <option value="Audiobook">Audiobook</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="manual-owned">Do you own this book at home?</label>
+                  <select id="manual-owned">
+                    <option value="1">Yes, owned at home (1)</option>
+                    <option value="0">No, not owned (0)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fields specific to TV Series -->
+            <div id="manual-tv-fields" class="conditional-fields">
+              <div class="form-cols">
+                <div class="form-row">
+                  <label for="manual-cur-season">Season You Watched</label>
+                  <input type="number" id="manual-cur-season" min="1" value="1">
+                </div>
+                <div class="form-row">
+                  <label for="manual-cur-episode">Episode You Watched</label>
+                  <input type="number" id="manual-cur-episode" min="0" value="0">
+                </div>
+              </div>
+              <div class="form-cols">
+                <div class="form-row">
+                  <label for="manual-latest-season">Latest Released Season</label>
+                  <input type="number" id="manual-latest-season" min="1" value="1">
+                </div>
+                <div class="form-row">
+                  <label for="manual-latest-episode">Latest Released Episode</label>
+                  <input type="number" id="manual-latest-episode" min="0" value="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-cols">
+              <div class="form-row">
+                <label for="manual-status">Status</label>
+                <select id="manual-status">
+                  <option value="watching">Watching Now / Reading Now</option>
+                  <option value="completed">Completed / Read</option>
+                  <option value="plan_to_watch">Plan to Watch / Wishlist</option>
+                  <option value="unread">Unread</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="manual-rating">Rating (1–5 Stars)</label>
+                <select id="manual-rating">
+                  <option value="0">No Rating</option>
+                  <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                  <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                  <option value="3">⭐⭐⭐ (3/5)</option>
+                  <option value="2">⭐⭐ (2/5)</option>
+                  <option value="1">⭐ (1/5)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="manual-poster">Cover Poster URL</label>
+              <input type="url" id="manual-poster" placeholder="https://example.com/poster.jpg (optional)">
+            </div>
+
+            <div class="form-row">
+              <label for="manual-notes">Personal Review / Notes</label>
+              <textarea id="manual-notes" rows="2" placeholder="Your impressions, favorite quotes, or thoughts..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary modal-cancel-btn">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save to Library</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: EDIT ITEM -->
+  <!-- ============================================== -->
+  <div id="modal-edit" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-edit-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-edit-title">Edit Entry</h2>
+        <button id="btn-close-edit-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit" class="standard-form">
+          <input type="hidden" id="edit-id">
+          <input type="hidden" id="edit-item-kind">
+
+          <div class="form-row">
+            <label for="edit-title">Title</label>
+            <input type="text" id="edit-title" required>
+          </div>
+
+          <!-- Book specific fields -->
+          <div id="edit-book-fields" class="conditional-fields hidden">
+            <div class="form-row">
+              <label for="edit-author">Author</label>
+              <input type="text" id="edit-author">
+            </div>
+            <div class="form-cols">
+              <div class="form-row">
+                <label for="edit-page-count">Total Pages</label>
+                <input type="number" id="edit-page-count" min="0">
+              </div>
+              <div class="form-row">
+                <label for="edit-current-page">Current Page</label>
+                <input type="number" id="edit-current-page" min="0">
+              </div>
+            </div>
+            <div class="form-cols">
+              <div class="form-row">
+                <label for="edit-format">Format</label>
+                <select id="edit-format">
+                  <option value="Hardcover">Hardcover</option>
+                  <option value="Paperback">Paperback</option>
+                  <option value="E-Book">E-Book</option>
+                  <option value="Audiobook">Audiobook</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="edit-owned">Owned at home?</label>
+                <select id="edit-owned">
+                  <option value="1">Yes, owned at home (1)</option>
+                  <option value="0">No, not owned (0)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Series specific fields -->
+          <div id="edit-tv-fields" class="conditional-fields hidden">
+            <div class="series-live-refresh-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <span style="font-size:0.8rem; color:#94a3b8;">Real-time TVMaze episode sync:</span>
+              <button type="button" id="btn-refresh-single-series" class="btn btn-sm btn-secondary">
+                🔄 Check Live Episodes
+              </button>
+            </div>
+            <div class="form-cols">
+              <div class="form-row">
+                <label for="edit-cur-season">Watched Season</label>
+                <input type="number" id="edit-cur-season" min="1">
+              </div>
+              <div class="form-row">
+                <label for="edit-cur-episode">Watched Episode</label>
+                <input type="number" id="edit-cur-episode" min="0">
+              </div>
+            </div>
+            <div class="form-cols">
+              <div class="form-row">
+                <label for="edit-latest-season">Latest Released Season</label>
+                <input type="number" id="edit-latest-season" min="1">
+              </div>
+              <div class="form-row">
+                <label for="edit-latest-episode">Latest Released Episode</label>
+                <input type="number" id="edit-latest-episode" min="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-cols">
+            <div class="form-row">
+              <label for="edit-status">Status</label>
+              <select id="edit-status">
+                <option value="watching">Watching Now / Reading Now</option>
+                <option value="completed">Completed / Read</option>
+                <option value="plan_to_watch">Plan to Watch</option>
+                <option value="unread">Unread</option>
+                <option value="wishlist">Wishlist</option>
+                <option value="dropped">Dropped</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="edit-rating">Rating (1–5 Stars)</label>
+              <select id="edit-rating">
+                <option value="0">No Rating</option>
+                <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                <option value="3">⭐⭐⭐ (3/5)</option>
+                <option value="2">⭐⭐ (2/5)</option>
+                <option value="1">⭐ (1/5)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="edit-poster">Poster URL</label>
+            <input type="url" id="edit-poster">
+          </div>
+
+          <div class="form-row">
+            <label for="edit-notes">Personal Review / Notes</label>
+            <textarea id="edit-notes" rows="3"></textarea>
+          </div>
+
+          <div class="form-actions space-between">
+            <button type="button" id="btn-delete-item" class="btn btn-danger">Delete</button>
+            <div class="action-right">
+              <button type="button" class="btn btn-secondary modal-cancel-btn">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
