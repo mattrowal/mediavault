@@ -1,4 +1,4 @@
-# 🎬 MediaVault • Movies, TV Shows, Book Library & AI Curator
+#  MediaVault • Movies, TV Shows, Book Library & AI Curator
 
 A modern, full-stack media database and tracking application that allows you to:
 1. **Track Watched Movies**: Record movies you have watched or plan to watch, complete with release years, genres, posters, 1–5 star ratings, and personal reviews.
@@ -11,7 +11,7 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ---
 
-## 🏛️ System Architecture
+##  System Architecture
 
 ```
 +-------------------------------------------------------------------------+
@@ -42,30 +42,30 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ---
 
-## 🌟 Key Features
+##  Key Features
 
-### 📺 1. TV Series & Episode Monitoring
+###  1. TV Series & Episode Monitoring
 - Track exact watched progress (`Season X, Episode Y`).
 - Automatically queries the **TVMaze API** for schedule and air date data.
 - **Unwatched Released Indicator**: Automatically calculates when new episodes have aired ahead of your watched progress (e.g. `⚡ 3 unwatched released episodes`).
 - **Live Sync**: Refresh any series on opening or via the manual refresh button to fetch the latest episode air dates.
 - One-click `+1 Episode Watched` button directly on cards.
 
-### 🎬 2. Movie Logging
+###  2. Movie Logging
 - Track watched movies vs. plan to watch.
 - Star ratings (1 to 5 stars) and personal impressions.
 - Instant search with official movie posters and release years.
 
-### 📚 3. Book Collection (Separated Statuses)
+###  3. Book Collection (Separated Statuses)
 - **Ownership Status**: `Owned at Home` (1) vs. `Not Owned` (0).
 - **Reading Status**: `Read (Completed)`, `Reading Now`, `Unread`, `Wishlist`.
 - **"Owned & Unread (TBR)" Filter**: Instantly displays books you physically own at home that you have not read yet.
 - Visual reading progress bar with page counter (e.g. `Page 145 of 620, 23%`).
 
-### ✨ 4. Central GenAI Curator (Google Gemini 3.6 Flash)
+###  4. Central GenAI Curator (Google Gemini 3.6 Flash)
 - Analyzes your unique database profile (your 5-star favorites, notes, and genre patterns).
 - Generates 4 to 6 tailored recommendations with articulate explanations explaining **why** you will enjoy each title based on what you previously loved.
-- One-click **"➕ Add to Library"** button to immediately save recommendations to your plan-to-watch or reading wishlist.
+- One-click **" Add to Library"** button to immediately save recommendations to your plan-to-watch or reading wishlist.
 
 ---
 
@@ -78,7 +78,7 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ---
 
-## 🛠️ Local Setup Guide
+##  Local Setup Guide
 
 ### 1. Prerequisites
 - **Node.js**: v22.5.0+ or v24.x (uses built-in `node:sqlite` — no C++ compilers or extra sqlite drivers needed).
@@ -135,7 +135,7 @@ npm run dev
 ```
 
 Open your browser and navigate to:
-👉 **[http://localhost:3000](http://localhost:3000)** (or the port set in your `.env`).
+ **[http://localhost:3000](http://localhost:3000)** (or the port set in your `.env`).
 
 ### 7. Run Automated Tests
 Execute the complete test suite locally:
@@ -162,7 +162,7 @@ The Docker configuration mounts a persistent volume for `/app/data` to ensure yo
 
 ---
 
-## 🔒 Security & Secrets Management
+##  Security & Secrets Management
 - **Password Security:** Salted asynchronous `scrypt` hashing, 15+ character minimum, and single-transaction session revocation upon change.
 - **Server-Side Sessions & CSRF Protection:** Cryptographically random session tokens (32 bytes) stored in SQLite with `HttpOnly` cookies; state-changing requests guarded by CSRF tokens.
 - **All API keys remain strictly on the backend** (`server.js`). The frontend client never touches or exposes the Google Gemini key.
