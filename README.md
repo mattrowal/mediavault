@@ -69,6 +69,15 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ---
 
+### 5. Multi-User Authentication & Account Management
+- **Secure Password Hashing:** Implements asynchronous `crypto.scrypt` with a unique 16-byte random salt per user and timing-safe comparison (`timingSafeEqual`) to prevent timing side-channel attacks. Passwords are never logged or stored in plaintext.
+- **Strong Password Policy:** Enforces a minimum of 15 characters for registration and password changes, supporting password-manager-generated strings, arbitrary unicode, spaces, and passphrases of 64+ characters (up to 256 characters), while preserving login compatibility for existing accounts.
+- **Account View & Password Change:** Logged-in users can update their password from the Account section. Requires current password verification, confirmation match, and rejection of identical new passwords.
+- **Atomic Session Invalidation:** Upon a successful password change, the new hash is stored and all active sessions for that user are revoked in a single SQLite transaction, ensuring neither change succeeds without the other.
+- **CSRF & Rate Limiting:** All state-changing endpoints enforce custom `x-csrf-token` header validation and sliding-window rate limiters (max 5 password change attempts per 5 minutes).
+
+---
+
 ## 🛠️ Local Setup Guide
 
 ### 1. Prerequisites
@@ -110,7 +119,7 @@ PORT=3000
 
 ### 5. Database Initialization
 MediaVault uses a local, zero-configuration **SQLite** database via Node.js's built-in `node:sqlite`:
-- **Automatic Setup:** When you start the application, `db.js` automatically creates the `data/` directory and initializes `data/media_vault.db` with all tables (`media_items`, `books`) and performance indexes if they do not exist.
+- **Automatic Setup:** When you start the application, `db.js` automatically creates the `data/` directory and initializes `data/media_vault.db` with all tables (`users`, `sessions`, `media_items`, `books`) and performance indexes if they do not exist.
 - **No manual SQL migrations or database server setup are required.**
 - **Persistence:** All personal data is saved locally in `data/media_vault.db` and persists across app and server restarts.
 - **Privacy:** The `data/` folder and `*.db` files are included in `.gitignore` to prevent personal libraries from ever being committed to GitHub.
@@ -128,6 +137,17 @@ npm run dev
 Open your browser and navigate to:
 👉 **[http://localhost:3000](http://localhost:3000)** (or the port set in your `.env`).
 
+### 7. Run Automated Tests
+Execute the complete test suite locally:
+```bash
+# Run all automated tests (multi-user isolation & change-password suites)
+npm test
+
+# Or run specific test suites individually
+npm run test:multiuser
+npm run test:password
+```
+
 ---
 
 ## ☁️ Deploying to AWS
@@ -143,6 +163,9 @@ The Docker configuration mounts a persistent volume for `/app/data` to ensure yo
 ---
 
 ## 🔒 Security & Secrets Management
+- **Password Security:** Salted asynchronous `scrypt` hashing, 15+ character minimum, and single-transaction session revocation upon change.
+- **Server-Side Sessions & CSRF Protection:** Cryptographically random session tokens (32 bytes) stored in SQLite with `HttpOnly` cookies; state-changing requests guarded by CSRF tokens.
 - **All API keys remain strictly on the backend** (`server.js`). The frontend client never touches or exposes the Google Gemini key.
 - `.gitignore` strictly prevents `.env`, `data/`, and `*.db` files from being committed to GitHub.
 - Built-in health check endpoint at `GET /api/health` for monitoring and AWS Load Balancers.
+

@@ -38,6 +38,9 @@
         <button id="tab-ai" class="tab-btn tab-ai-btn" data-view="ai">
           <span class="tab-icon">✨</span> AI Curator
         </button>
+        <button id="tab-account" class="tab-btn" data-view="account">
+          <span class="tab-icon">⚙️</span> Account
+        </button>
       </nav>
 
       <!-- Action Buttons & Auth Status -->
@@ -306,6 +309,73 @@
             <h4>Ready to discover your next favorite?</h4>
             <p>Click "Generate Recommendations" above to let Gemini analyze your library.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 5: ACCOUNT SETTINGS & PASSWORD CHANGE -->
+    <!-- ============================================== -->
+    <section id="view-account" class="view-section">
+      <div class="account-container">
+        <!-- Account Overview Card -->
+        <div class="account-card">
+          <div class="account-header">
+            <div class="account-avatar">
+              <span class="avatar-icon">👤</span>
+            </div>
+            <div class="account-info">
+              <h2 id="account-username-display">Account Profile</h2>
+              <span class="account-status-badge">Authenticated User</span>
+            </div>
+          </div>
+          <div class="account-details-grid">
+            <div class="account-detail-item">
+              <span class="detail-label">Active Username</span>
+              <strong id="account-detail-username" class="detail-value">-</strong>
+            </div>
+            <div class="account-detail-item">
+              <span class="detail-label">Session Status</span>
+              <strong class="detail-value text-emerald">Active & Authenticated</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Change Password Card -->
+        <div class="account-card password-card">
+          <div class="account-card-header">
+            <div class="card-header-icon">🔑</div>
+            <div>
+              <h3>Change Password</h3>
+              <p class="card-header-desc">Update your password. Changing your password revokes all active sessions and requires signing in again.</p>
+            </div>
+          </div>
+
+          <div id="change-pwd-alert" class="auth-alert hidden" role="alert"></div>
+
+          <form id="form-change-password" class="standard-form">
+            <div class="form-row">
+              <label for="change-cur-password">Current Password *</label>
+              <input type="password" id="change-cur-password" autocomplete="current-password" required placeholder="Enter your current password">
+            </div>
+
+            <div class="form-row">
+              <label for="change-new-password">New Password *</label>
+              <input type="password" id="change-new-password" autocomplete="new-password" required minlength="15" maxlength="256" placeholder="At least 15 characters">
+              <span class="field-hint">Minimum 15 characters. Spaces and password-manager-generated passwords supported (up to 256 characters).</span>
+            </div>
+
+            <div class="form-row">
+              <label for="change-confirm-password">Confirm New Password *</label>
+              <input type="password" id="change-confirm-password" autocomplete="new-password" required minlength="15" maxlength="256" placeholder="Repeat your new password">
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btn-submit-change-pwd" class="btn btn-primary">
+                <span>🔒</span> Update Password
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </section>
@@ -654,11 +724,12 @@
           </div>
           <div class="form-row">
             <label for="reg-password">Password</label>
-            <input type="password" id="reg-password" autocomplete="new-password" required minlength="6" placeholder="At least 6 characters">
+            <input type="password" id="reg-password" autocomplete="new-password" required minlength="15" maxlength="256" placeholder="At least 15 characters">
+            <span class="field-hint">Minimum 15 characters. Spaces and password managers supported.</span>
           </div>
           <div class="form-row">
             <label for="reg-password-confirm">Confirm Password</label>
-            <input type="password" id="reg-password-confirm" autocomplete="new-password" required minlength="6" placeholder="Repeat your password">
+            <input type="password" id="reg-password-confirm" autocomplete="new-password" required minlength="15" maxlength="256" placeholder="Repeat your password">
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-block">Create Account</button>

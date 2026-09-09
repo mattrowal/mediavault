@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const res = await originalFetch(input, opts);
     const urlStr = typeof input === 'string' ? input : input.url || '';
 
-    if (res.status === 401 && !urlStr.includes('/api/auth/me')) {
+    if (res.status === 401 && !urlStr.includes('/api/auth/me') && !urlStr.includes('/api/auth/change-password')) {
       if (currentUser) {
         showToast('Your session has expired. Please sign in.', 'warning');
       }
@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewName === 'dashboard') loadDashboard();
     if (viewName === 'media') loadMedia();
     if (viewName === 'books') loadBooks();
+    if (viewName === 'account') loadAccount();
   }
 
   function setupEventListeners() {
@@ -136,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tabs.forEach(btn => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
+
+    userDisplayName?.addEventListener('click', () => switchView('account'));
 
     // Quick add buttons on dashboard
     document.getElementById('dash-quick-add-serie')?.addEventListener('click', () => openAddModal('search-tv'));
@@ -1408,6 +1411,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
+  function loadAccount() {
+    if (!currentUser) {
+      switchView('dashboard');
+      openAuthModal('login');
+      return;
+    }
+    const accountUsername = document.getElementById('account-username-display');
+    const accountDetailUser = document.getElementById('account-detail-username');
+    if (accountUsername) accountUsername.textContent = `${currentUser.username}'s Profile`;
+    if (accountDetailUser) accountDetailUser.textContent = currentUser.username;
+
+    const alertBox = document.getElementById('change-pwd-alert');
+    if (alertBox) {
+      alertBox.classList.add('hidden');
+      alertBox.textContent = '';
+      alertBox.className = 'auth-alert hidden';
+    }
+    const form = document.getElementById('form-change-password');
+    if (form) form.reset();
+  }
+
   // ===================================================
   // AUTHENTICATION LOGIC & MODAL MANAGEMENT
   // ===================================================
@@ -1440,13 +1464,23 @@ document.addEventListener('DOMContentLoaded', () => {
       // Authenticated view
       btnOpenAuthModal?.classList.add('hidden');
       userLoggedInBadge?.classList.remove('hidden');
+      userLoggedInBadge?.classList.add('clickable');
       if (userDisplayName) userDisplayName.textContent = currentUser.username;
       authCalloutBanner?.classList.add('hidden');
+
+      const accountUsername = document.getElementById('account-username-display');
+      const accountDetailUser = document.getElementById('account-detail-username');
+      if (accountUsername) accountUsername.textContent = `${currentUser.username}'s Profile`;
+      if (accountDetailUser) accountDetailUser.textContent = currentUser.username;
     } else {
       // Unauthenticated view
       btnOpenAuthModal?.classList.remove('hidden');
       userLoggedInBadge?.classList.add('hidden');
       authCalloutBanner?.classList.remove('hidden');
+
+      if (currentView === 'account') {
+        switchView('dashboard');
+      }
 
       // Reset dashboard stats to 0
       if (statNewEpisodes) statNewEpisodes.textContent = '0';
@@ -1560,6 +1594,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!username || !password) return;
 
+      if (password.length < 15) {
+        if (authAlertBox) {
+          authAlertBox.textContent = 'Password must be at least 15 characters long.';
+          authAlertBox.classList.remove('hidden');
+        }
+        return;
+      }
+
       if (password !== confirmPassword) {
         if (authAlertBox) {
           authAlertBox.textContent = 'Passwords do not match.';
@@ -1592,6 +1634,80 @@ document.addEventListener('DOMContentLoaded', () => {
           authAlertBox.textContent = err.message;
           authAlertBox.classList.remove('hidden');
         }
+      }
+    });
+
+    // Handle Change Password Form Submit
+    const formChangePassword = document.getElementById('form-change-password');
+    const changePwdAlert = document.getElementById('change-pwd-alert');
+
+    formChangePassword?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const curInput = document.getElementById('change-cur-password');
+      const newInput = document.getElementById('change-new-password');
+      const confInput = document.getElementById('change-confirm-password');
+
+      const currentPassword = curInput?.value;
+      const newPassword = newInput?.value;
+      const confirmPassword = confInput?.value;
+
+      function showFormError(msg) {
+        if (changePwdAlert) {
+          changePwdAlert.textContent = msg;
+          changePwdAlert.className = 'auth-alert';
+          changePwdAlert.classList.remove('hidden');
+        }
+      }
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        showFormError('All fields are required.');
+        return;
+      }
+
+      if (newPassword.length < 15 || newPassword.length > 256) {
+        showFormError('New password must be between 15 and 256 characters long.');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showFormError('New password and confirmation do not match.');
+        return;
+      }
+
+      if (newPassword === currentPassword) {
+        showFormError('New password cannot be the same as your current password.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-change-pwd');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          // Keep current password error visible in the form without logging out
+          showFormError(data.error || 'Failed to change password.');
+          return;
+        }
+
+        // On success: sessions revoked server-side
+        showToast('Password changed successfully! All sessions revoked. Please sign in.', 'success');
+        formChangePassword.reset();
+        currentUser = null;
+        csrfToken = null;
+        updateAuthUI();
+        switchView('dashboard');
+        openAuthModal('login');
+      } catch (err) {
+        showFormError(err.message || 'An error occurred while changing password.');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
 

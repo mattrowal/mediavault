@@ -189,7 +189,7 @@ async function runTests() {
     await bob.initCsrf();
     const regBob = await bob.request('POST', '/api/auth/register', {
       username: 'bob',
-      password: 'bobPassword123'
+      password: 'bobPassword12345'
     });
     assert(regBob.status === 201, 'Registration of Bob returns 201 Created');
     const bobId = regBob.body.user.id;

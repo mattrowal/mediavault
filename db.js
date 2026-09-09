@@ -146,6 +146,46 @@ export function getUserById(id) {
   return db.prepare('SELECT id, username, created_at, updated_at FROM users WHERE id = ?').get(id);
 }
 
+export function getUserWithCredentials(id) {
+  if (!id) return null;
+  return db.prepare('SELECT id, username, password_hash, salt FROM users WHERE id = ?').get(id);
+}
+
+/**
+ * Updates user password hash and salt, and revokes all active sessions for the user
+ * within a single atomic SQLite transaction. Both operations succeed or both fail.
+ */
+export function updateUserPasswordAndRevokeSessions(userId, passwordHash, salt) {
+  if (!userId || !passwordHash || !salt) {
+    throw new Error('User ID, password hash, and salt are required');
+  }
+
+  db.exec('BEGIN TRANSACTION');
+  try {
+    const updateStmt = db.prepare(`
+      UPDATE users
+      SET password_hash = ?, salt = ?, updated_at = datetime('now', 'localtime')
+      WHERE id = ?
+    `);
+    const updateRes = updateStmt.run(passwordHash, salt, userId);
+    if (updateRes.changes === 0) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    const deleteStmt = db.prepare('DELETE FROM sessions WHERE user_id = ?');
+    deleteStmt.run(userId);
+
+    db.exec('COMMIT');
+    return true;
+  } catch (err) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {}
+    throw err;
+  }
+}
+
+
 // ==========================================
 // SERVER-SIDE SESSIONS
 // ==========================================

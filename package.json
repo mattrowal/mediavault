@@ -9,7 +9,9 @@
     "dev": "node --watch server.js",
     "claim-legacy": "node scripts/claim-legacy.js",
     "backup-db": "node scripts/backup-db.js",
-    "test:multiuser": "node test/multiuser-test.js"
+    "test:multiuser": "node test/multiuser-test.js",
+    "test:password": "node test/change-password-test.js",
+    "test": "node test/multiuser-test.js && node test/change-password-test.js"
   },
   "keywords": [
     "media-tracker",

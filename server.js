@@ -22,6 +22,8 @@ import {
   createUser,
   getUserByUsername,
   getUserById,
+  getUserWithCredentials,
+  updateUserPasswordAndRevokeSessions,
   purgeExpiredSessions
 } from './db.js';
 import {
@@ -35,7 +37,8 @@ import {
   requireAuth,
   csrfProtection,
   authLimiter,
-  aiLimiter
+  aiLimiter,
+  passwordChangeLimiter
 } from './auth.js';
 
 dotenv.config();
@@ -158,8 +161,8 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores.' });
     }
 
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    if (!password || typeof password !== 'string' || password.length < 15 || password.length > 256) {
+      return res.status(400).json({ error: 'Password must be between 15 and 256 characters long.' });
     }
 
     // Check if username is already taken
@@ -247,6 +250,54 @@ app.post('/api/auth/logout', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Change password for logged-in user (requires authentication, rate limited, revokes all sessions atomically)
+app.post('/api/auth/change-password', requireAuth, passwordChangeLimiter, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: 'Current password, new password, and password confirmation are required.' });
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 15 || newPassword.length > 256) {
+      return res.status(400).json({ error: 'New password must be between 15 and 256 characters long.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'New password and confirmation do not match.' });
+    }
+
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: 'New password cannot be the same as the current password.' });
+    }
+
+    const userRecord = getUserWithCredentials(req.user.id);
+    if (!userRecord) {
+      return res.status(404).json({ error: 'User account not found.' });
+    }
+
+    const isCurrentValid = await verifyPassword(currentPassword, userRecord.salt, userRecord.password_hash);
+    if (!isCurrentValid) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    const { hash, salt } = await hashPassword(newPassword);
+
+    updateUserPasswordAndRevokeSessions(req.user.id, hash, salt);
+
+    clearSessionCookies(res);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully. All active sessions have been revoked. Please sign in with your new password.'
+    });
+  } catch (err) {
+    console.error('Password change error:', err.message);
+    res.status(500).json({ error: 'Failed to update password: ' + err.message });
+  }
+});
+
 
 // Get current session state & user info
 app.get('/api/auth/me', (req, res) => {

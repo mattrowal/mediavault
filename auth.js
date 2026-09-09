@@ -21,8 +21,8 @@ const scryptAsync = promisify(crypto.scrypt);
  * @returns {Promise<{ hash: string, salt: string }>}
  */
 export async function hashPassword(password) {
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    throw new Error('Password must be at least 6 characters long');
+  if (!password || typeof password !== 'string' || password.length < 15 || password.length > 256) {
+    throw new Error('Password must be between 15 and 256 characters long');
   }
 
   const salt = crypto.randomBytes(16).toString('hex');
@@ -334,3 +334,12 @@ export const aiLimiter = createRateLimiter({
   message: 'AI request limit reached (max 5 per 10 minutes). Please wait a few minutes before requesting more suggestions.',
   keyGenerator: (req) => (req.user?.id ? `user_${req.user.id}_ai` : `${req.ip || 'ip'}_ai`)
 });
+
+// Rate limiter for password change attempts: Max 5 attempts per 5 minutes per user/IP
+export const passwordChangeLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many password change attempts. Please wait 5 minutes before trying again.',
+  keyGenerator: (req) => (req.user?.id ? `user_${req.user.id}_pwd` : `${req.ip || 'ip'}_pwd`)
+});
+
