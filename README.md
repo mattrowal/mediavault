@@ -150,7 +150,7 @@ npm run test:password
 
 ---
 
-## ☁️ Deploying to AWS
+##  Deploying to AWS
 
 MediaVault is production-ready for deployment on AWS (AWS App Runner, Lightsail Containers, or EC2). See the full step-by-step guide in [AWS_DEPLOYMENT.md](AWS_DEPLOYMENT.md).
 
