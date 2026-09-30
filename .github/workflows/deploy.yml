@@ -1,0 +1,111 @@
+name: MediaVault CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: 🧪 Automated Verification Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run complete test suite (Multi-user, Passwords, AI Assistant, Notifications)
+        run: npm test
+        env:
+          NODE_ENV: development
+          GEMINI_API_KEY: ci_test_dummy_key
+
+  deploy:
+    name: 🚀 Production AWS EC2 Deployment
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to EC2 and Execute Safe Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/mediavault
+            echo "=========================================="
+            echo "🎬 MediaVault Automated Production Deploy"
+            echo "=========================================="
+
+            # 1. Capture current commit for automated rollback reference
+            PREV_COMMIT=$(git rev-parse HEAD)
+            BACKUP_LABEL="deploy_$(date +%s)"
+            echo "📌 Current deployment commit: $PREV_COMMIT"
+
+            # 2. Perform atomic database backup before pulling changes
+            echo "💾 Creating pre-deploy database snapshot..."
+            node scripts/backup-db.js "$BACKUP_LABEL"
+
+            # 3. Pull verified changes from main branch
+            echo "📥 Pulling latest verified commits from GitHub..."
+            git pull origin main
+
+            # 4. Install production dependencies
+            echo "📦 Installing production dependencies..."
+            npm ci --omit=dev
+
+            # 5. Run database migrations safely
+            echo "🔄 Running database schema migrations..."
+            node scripts/migrate.js
+
+            # 6. Restart systemd service
+            echo "🔄 Restarting mediavault service..."
+            sudo systemctl restart mediavault
+
+            # 7. Post-deployment health check verification (Poll /api/health for up to 30s)
+            echo "🩺 Verifying server health check..."
+            HEALTHY=0
+            for i in {1..6}; do
+              sleep 5
+              if curl -s -f http://127.0.0.1:3000/api/health | grep '"status":"healthy"' > /dev/null; then
+                HEALTHY=1
+                echo "✅ Server responded healthy on attempt $i!"
+                break
+              fi
+              echo "Attempt $i: Server not healthy yet, retrying in 5s..."
+            done
+
+            # 8. Recovery procedure if deployment fails
+            if [ $HEALTHY -eq 1 ]; then
+              echo "=========================================="
+              echo "🎉 Deployment Succeeded and Verified Healthy!"
+              echo "=========================================="
+            else
+              echo "❌ Health check failed or server crashed! Initiating automated recovery procedure..."
+              
+              # Revert code to previous commit
+              git checkout $PREV_COMMIT
+              npm ci --omit=dev
+              
+              # Restore database from pre-deploy snapshot
+              LATEST_BACKUP=$(ls -t data/backups/media_vault_backup_*${BACKUP_LABEL}.db | head -n 1)
+              if [ -f "$LATEST_BACKUP" ]; then
+                echo "Restoring database snapshot from $LATEST_BACKUP..."
+                cp "$LATEST_BACKUP" data/media_vault.db
+              fi
+
+              sudo systemctl restart mediavault
+              echo "⚠️ Application rolled back to commit $PREV_COMMIT."
+              exit 1
+            fi

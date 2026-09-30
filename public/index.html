@@ -11,61 +11,140 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Header & Navigation -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="brand">
+  <!-- Top Compact Utility Toolbar -->
+  <header class="top-toolbar">
+    <div class="toolbar-left">
+      <!-- Mobile Navigation Hamburger Toggle (centered 3 lines) -->
+      <button id="btn-nav-toggle" class="btn-nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-collapse-menu">
+        <span class="hamburger-box" aria-hidden="true">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </span>
+      </button>
+
+      <div class="brand brand-compact">
         <span class="brand-icon">🎬</span>
         <div class="brand-text">
           <h1>Media<span>Vault</span></h1>
-          <span class="brand-sub">Movies, Series & Book Library</span>
         </div>
       </div>
+    </div>
 
-      <!-- Main Navigation Tabs -->
-      <nav class="nav-tabs" aria-label="Main Navigation">
-        <button id="tab-dashboard" class="tab-btn active" data-view="dashboard">
-          <span class="tab-icon">📊</span> Dashboard
-        </button>
-        <button id="tab-media" class="tab-btn" data-view="media">
-          <span class="tab-icon">📺</span> Movies & Series
-          <span id="badge-new-episodes" class="nav-badge hidden">0</span>
-        </button>
-        <button id="tab-books" class="tab-btn" data-view="books">
-          <span class="tab-icon">📚</span> Books
-          <span id="badge-owned-books" class="nav-badge-sub hidden">0</span>
-        </button>
-        <button id="tab-ai" class="tab-btn tab-ai-btn" data-view="ai">
-          <span class="tab-icon">✨</span> AI Curator
-        </button>
-        <button id="tab-account" class="tab-btn" data-view="account">
-          <span class="tab-icon">⚙️</span> Account
-        </button>
-      </nav>
+    <!-- Mobile Ask Library Header Launcher (Row 1 right on mobile, hidden on desktop/tablet) -->
+    <button id="btn-header-assistant" class="btn btn-assistant-header" aria-label="Open Library AI Assistant" title="Ask Library Assistant">
+      <span class="btn-icon">✨</span>
+      <span class="btn-text">Ask Library</span>
+    </button>
 
-      <!-- Action Buttons & Auth Status -->
-      <div class="nav-actions">
-        <button id="btn-sync-tv" class="btn btn-secondary" title="Check TVMaze for new aired episodes">
-          <span class="btn-icon">🔄</span> <span class="btn-text">Sync Episodes</span>
-        </button>
-        <button id="btn-open-add-modal" class="btn btn-primary">
-          <span class="btn-icon">➕</span> <span class="btn-text">Add Item</span>
+    <!-- Action Buttons & Notifications in compact toolbar -->
+    <div class="nav-actions">
+      <button id="btn-sync-tv" class="btn btn-secondary" title="Check TVMaze for new aired episodes">
+        <span class="btn-icon">🔄</span> <span class="btn-text">Sync Episodes</span>
+      </button>
+      <button id="btn-open-add-modal" class="btn btn-primary">
+        <span class="btn-text">Add Item</span>
+      </button>
+
+      <!-- In-App Episode Notification Bell & Flyout -->
+      <div class="nav-notification-wrapper" id="nav-notification-wrapper">
+        <button id="btn-toggle-notifications" class="btn btn-secondary nav-bell-btn" title="Episode Notifications" aria-label="Episode Notifications">
+          <span class="bell-icon">🔔</span>
+          <span class="btn-text bell-btn-text">Episode Notifications</span>
+          <span id="badge-notifications-count" class="notif-badge hidden">0</span>
         </button>
 
-        <!-- User Authentication Status Indicator -->
-        <div class="user-auth-controls" id="user-auth-controls">
-          <button id="btn-open-auth-modal" class="btn btn-outline-auth">
-            <span class="btn-icon">👤</span> <span class="btn-text">Sign In</span>
-          </button>
-          <div id="user-logged-in-badge" class="user-badge hidden">
-            <span class="user-avatar-icon">👤</span>
-            <span id="user-display-name" class="user-name">User</span>
-            <button id="btn-logout" class="btn-logout" title="Log out">Logout</button>
+        <!-- Notification Flyout Dropdown -->
+        <div id="notifications-flyout" class="notifications-flyout hidden" role="region" aria-label="Notifications Panel">
+          <div class="notif-header">
+            <div class="notif-title-group">
+              <h4>Episode Alerts</h4>
+              <span id="notif-unread-tag" class="notif-unread-tag">0 unread</span>
+            </div>
+            <button id="btn-mark-all-read" class="btn-text-link" title="Mark all notifications as read">Mark all as read</button>
+          </div>
+          <div id="notifications-list" class="notifications-list">
+            <div class="notif-empty">No new episode alerts right now.</div>
           </div>
         </div>
       </div>
     </div>
   </header>
+
+  <!-- Left Sidebar Navigation (Desktop Fixed / Mobile Drawer) -->
+  <aside id="nav-collapse-menu" class="app-sidebar nav-collapse-menu" aria-label="Navigation Menu" aria-hidden="false">
+    <!-- Sidebar Header with Brand and Mobile Close Button -->
+    <div class="nav-collapse-header sidebar-header">
+      <div class="brand">
+        <span class="brand-icon">🎬</span>
+        <div class="brand-text">
+          <h1>Media<span>Vault</span></h1>
+          <span class="brand-sub">Library</span>
+        </div>
+      </div>
+      <button id="btn-close-nav-menu" class="btn-close-nav" aria-label="Close navigation menu" title="Close menu">&times;</button>
+    </div>
+
+    <!-- Main Navigation Tabs (Text-Only Labels) -->
+    <nav class="nav-tabs" aria-label="Main Navigation">
+      <button id="tab-dashboard" class="tab-btn active" data-view="dashboard">
+        Dashboard
+      </button>
+      <button id="tab-movies" class="tab-btn" data-view="movies">
+        Movies
+      </button>
+      <button id="tab-series" class="tab-btn" data-view="series">
+        TV Series
+        <span id="badge-new-episodes" class="nav-badge hidden">0</span>
+      </button>
+      <button id="tab-books" class="tab-btn" data-view="books">
+        Books
+        <span id="badge-owned-books" class="nav-badge-sub hidden">0</span>
+      </button>
+      <button id="tab-goals-planning" class="tab-btn" data-view="goals-planning">
+        Goals &amp; Planning
+      </button>
+      <button id="tab-calendar" class="tab-btn" data-view="calendar">
+        Calendar
+      </button>
+      <button id="tab-statistics" class="tab-btn" data-view="statistics">
+        Statistics
+      </button>
+      <button id="tab-discover" class="tab-btn" data-view="discover">
+        Discover
+      </button>
+      <button id="tab-ai" class="tab-btn tab-ai-btn" data-view="ai">
+        AI Curator
+      </button>
+    </nav>
+
+    <!-- Ask Library Assistant Launcher in Sidebar Drawer -->
+    <div class="sidebar-assistant-wrap">
+      <button id="btn-sidebar-assistant" class="btn btn-assistant-sidebar" title="Ask Library Assistant" aria-label="Open Library AI Assistant">
+        <span class="btn-icon">✨</span>
+        <span class="btn-text">Ask Library Assistant</span>
+      </button>
+    </div>
+
+    <!-- Combined Account / User Section Near Bottom of Sidebar -->
+    <div class="sidebar-footer">
+      <div class="user-auth-controls" id="user-auth-controls">
+        <button id="btn-open-auth-modal" class="btn btn-outline-auth">
+          <span class="btn-icon">👤</span> <span class="btn-text">Sign In</span>
+        </button>
+        <div id="user-logged-in-badge" class="user-badge hidden">
+          <button id="btn-user-account" class="btn-user-account" title="Account Settings" aria-label="Account Settings">
+            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+            <span id="user-display-name" class="user-name">User</span>
+          </button>
+          <button id="btn-logout" class="btn-logout" title="Log out" aria-label="Log out">Logout</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+  
+  <!-- Navigation Backdrop Overlay -->
+  <div id="nav-backdrop" class="nav-backdrop" aria-hidden="true"></div>
 
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -81,7 +160,7 @@
       <div class="welcome-card">
         <div class="welcome-info">
           <h2>Welcome to your personal vault</h2>
-          <p>Track your watched movies, stay on top of new TV episodes, manage books you own vs. read, and discover AI-tailored recommendations.</p>
+          <p>Track your watched movies, stay on top of TV episodes, manage books you own vs. read, and discover tailored recommendations.</p>
         </div>
         <div class="quick-actions-bar">
           <button class="btn btn-sm btn-outline" id="dash-quick-add-serie">➕ Add Series</button>
@@ -101,76 +180,11 @@
         <button id="btn-callout-login" class="btn btn-primary">Sign In / Register</button>
       </div>
 
-      <!-- Stats Grid -->
-      <div class="stats-grid">
-        <div class="stat-card" id="stat-card-episodes">
-          <div class="stat-icon alert-icon">⚡</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-new-episodes-count">0</span>
-            <span class="stat-label">Series with New Episodes</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon tv-icon">📺</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-series-watching">0</span>
-            <span class="stat-label">Active Series</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon movie-icon">🎬</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-movies-completed">0</span>
-            <span class="stat-label">Watched Movies</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon shelf-icon">🏠</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-books-owned">0</span>
-            <span class="stat-label">Books Owned at Home</span>
-          </div>
-        </div>
-
-        <div class="stat-card" id="stat-card-unread-owned">
-          <div class="stat-icon tbr-icon">📖</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-books-owned-unread">0</span>
-            <span class="stat-label">Owned & Unread (TBR)</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon read-icon">✅</div>
-          <div class="stat-info">
-            <span class="stat-value" id="stat-books-completed">0</span>
-            <span class="stat-label">Books Read</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Series with Unwatched Released Episodes -->
-      <div class="section-block" id="dash-new-episodes-section">
-        <div class="section-header">
-          <div class="section-title">
-            <span class="badge-pulsing">⚡ New Episodes Released</span>
-            <h3>Unwatched Episodes Waiting For You</h3>
-          </div>
-          <button id="btn-sync-dash" class="btn btn-sm btn-ghost">Refresh All Series 🔄</button>
-        </div>
-        <div id="dash-new-episodes-list" class="cards-grid">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </div>
-
-      <!-- Two Columns: Currently Watching & Currently Reading -->
-      <div class="dashboard-split">
+      <!-- Two Columns: Currently Watching & Currently Reading (PRIORITIZED NEAR TOP) -->
+      <div class="dashboard-split" id="dash-continue-section">
         <div class="split-col">
           <div class="section-header">
-            <h3>📺 Currently Watching</h3>
+            <h3>📺 Continue Watching</h3>
             <button class="btn btn-sm btn-ghost" id="btn-goto-media">View All &rarr;</button>
           </div>
           <div id="dash-watching-list" class="compact-grid">
@@ -180,7 +194,7 @@
 
         <div class="split-col">
           <div class="section-header">
-            <h3>📖 Currently Reading</h3>
+            <h3>📖 Continue Reading</h3>
             <button class="btn btn-sm btn-ghost" id="btn-goto-books">View Books &rarr;</button>
           </div>
           <div id="dash-reading-list" class="compact-grid">
@@ -188,41 +202,138 @@
           </div>
         </div>
       </div>
+
+      <!-- Section: Series with Unwatched Released Episodes (Compact horizontal cards) -->
+      <div class="section-block" id="dash-new-episodes-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="badge-status-neutral" id="dash-episodes-section-badge">Unwatched Episodes</span>
+            <h3 id="dash-episodes-section-title">Unwatched Episodes Waiting For You</h3>
+          </div>
+          <button id="btn-sync-dash" class="btn btn-sm btn-ghost">Refresh All Series 🔄</button>
+        </div>
+        <div id="dash-new-episodes-list" class="compact-grid dash-unwatched-grid">
+          <!-- Populated dynamically via JS with compact horizontal cards -->
+        </div>
+      </div>
+
+      <!-- Stats Grid (Interactive Navigation Cards) - PLACED BELOW CONTINUE SECTIONS -->
+      <div class="stats-grid">
+        <button type="button" class="stat-card clickable-card" id="stat-card-episodes" aria-label="Series with Unwatched Episodes: view TV series with released unwatched episodes" title="View TV series with unwatched episodes">
+          <div class="stat-icon alert-icon">⚡</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-new-episodes-count">0</span>
+            <span class="stat-label">Series with Unwatched Episodes</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button type="button" class="stat-card clickable-card" id="stat-card-active-series" aria-label="Active Series: view currently watching TV series" title="View active watching TV series">
+          <div class="stat-icon tv-icon">📺</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-series-watching">0</span>
+            <span class="stat-label">Active Series</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button type="button" class="stat-card clickable-card" id="stat-card-watched-movies" aria-label="Watched Movies: view completed movies" title="View watched movies">
+          <div class="stat-icon movie-icon">🎬</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-movies-completed">0</span>
+            <span class="stat-label">Watched Movies</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button type="button" class="stat-card clickable-card" id="stat-card-books-owned" aria-label="Books Owned at Home: view owned books" title="View books owned at home">
+          <div class="stat-icon shelf-icon">🏠</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-owned">0</span>
+            <span class="stat-label">Books Owned at Home</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button type="button" class="stat-card clickable-card" id="stat-card-unread-owned" aria-label="Owned and Unread: view owned books not yet completed" title="View owned unread books">
+          <div class="stat-icon tbr-icon">📖</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-owned-unread">0</span>
+            <span class="stat-label">Owned &amp; Unread (TBR)</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button type="button" class="stat-card clickable-card" id="stat-card-books-read" aria-label="Books Read: view completed books" title="View read books">
+          <div class="stat-icon read-icon">✅</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-books-completed">0</span>
+            <span class="stat-label">Books Read</span>
+          </div>
+          <span class="card-chevron" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- VIEW 2: MOVIES & TV SERIES -->
+    <!-- VIEW 2A: MOVIES (Only Movies) -->
     <!-- ============================================== -->
-    <section id="view-media" class="view-section">
+    <section id="view-movies" class="view-section">
       <div class="toolbar">
         <div class="filter-group">
-          <label for="filter-media-type" class="sr-only">Type</label>
-          <div class="segmented-control" id="filter-media-type">
-            <button class="seg-btn active" data-val="all">All</button>
-            <button class="seg-btn" data-val="tv">📺 TV Series</button>
-            <button class="seg-btn" data-val="movie">🎬 Movies</button>
-          </div>
-
-          <label for="filter-media-status" class="sr-only">Status</label>
-          <div class="segmented-control" id="filter-media-status">
-            <button class="seg-btn active" data-val="all">All Statuses</button>
+          <label for="filter-movies-status" class="sr-only">Status</label>
+          <div class="segmented-control" id="filter-movies-status">
+            <button class="seg-btn active" data-val="all">All Movies</button>
+            <button class="seg-btn" data-val="completed">🎬 Watched</button>
+            <button class="seg-btn" data-val="plan_to_watch">Plan to Watch</button>
             <button class="seg-btn" data-val="watching">Watching Now</button>
-            <button class="seg-btn" data-val="completed">Completed / Watched</button>
+          </div>
+        </div>
+
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-movies-input" placeholder="Search your movies...">
+        </div>
+      </div>
+
+      <!-- Movies Cards Container -->
+      <div id="movies-cards-container" class="cards-grid">
+        <!-- Loaded dynamically via loadMovies() -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 2B: TV SERIES (Only Series) -->
+    <!-- ============================================== -->
+    <section id="view-series" class="view-section">
+      <div class="toolbar">
+        <div class="filter-group">
+          <label for="filter-series-status" class="sr-only">Status</label>
+          <div class="segmented-control" id="filter-series-status">
+            <button class="seg-btn active" data-val="all">All Series</button>
+            <button class="seg-btn" data-val="watching">📺 Active / Watching</button>
+            <button class="seg-btn" data-val="new_episodes">Unwatched Episodes</button>
+            <button class="seg-btn" data-val="completed">Completed</button>
             <button class="seg-btn" data-val="plan_to_watch">Plan to Watch</button>
           </div>
         </div>
 
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" id="search-media-input" placeholder="Search your movies & series...">
+          <input type="text" id="search-series-input" placeholder="Search your TV series...">
         </div>
       </div>
 
-      <!-- Cards Container -->
-      <div id="media-cards-container" class="cards-grid">
-        <!-- Loaded dynamically -->
+      <!-- Series Cards Container -->
+      <div id="series-cards-container" class="cards-grid">
+        <!-- Loaded dynamically via loadSeries() -->
       </div>
     </section>
+
+    <!-- Legacy / Fallback view-media container kept for backwards compatibility -->
+    <div id="view-media" class="view-section" style="display:none;">
+      <div id="media-cards-container"></div>
+    </div>
 
     <!-- ============================================== -->
     <!-- VIEW 3: BOOKS (Separate Ownership & Reading Status) -->
@@ -270,7 +381,7 @@
         <div class="ai-hero-content">
           <div class="ai-badge-header">
             <span class="ai-pill">✨ Powered by Google Gemini</span>
-            <span class="ai-model-tag">gemini-3.6-flash</span>
+            <span class="ai-model-tag">gemini-3.5-flash-lite</span>
           </div>
           <h2>Personalized AI Curator</h2>
           <p>
@@ -294,6 +405,21 @@
         </div>
       </div>
 
+      <!-- Interactive AI Assistant Banner in AI tab -->
+      <div class="ai-assistant-banner">
+        <div class="ai-assistant-banner-content">
+          <div class="ai-pill">💬 Interactive Library Assistant</div>
+          <h3>Ask Your Library Anything</h3>
+          <p>Talk directly with an assistant connected to your private books, movies, and TV series. Ask for weekend reading suggestions, explore your unwatched backlog, or get personalized explanations grounded in your database facts.</p>
+          <div class="ai-assistant-banner-actions">
+            <button id="btn-open-assistant-banner" class="btn btn-primary btn-ai-sparkle">
+              <span>💬</span> Launch Library Assistant
+            </button>
+            <span class="ai-sub-note">🔒 Controlled Server Tools • Strict Data Isolation • Read-Only</span>
+          </div>
+        </div>
+      </div>
+
       <!-- AI Recommendations Container -->
       <div class="section-block">
         <div class="section-header">
@@ -310,6 +436,553 @@
             <p>Click "Generate Recommendations" above to let Gemini analyze your library.</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW: PERSONAL STATISTICS -->
+    <!-- ============================================== -->
+    <section id="view-statistics" class="view-section">
+      <div class="statistics-container">
+        <!-- Section Header with Period Selector -->
+        <div class="statistics-header-bar">
+          <div>
+            <h2>Personal Statistics</h2>
+            <p class="section-sub">Your viewing hours, reading progress, and library milestones.</p>
+          </div>
+          <div class="period-pills-wrap" role="group" aria-label="Statistics time period">
+            <button type="button" class="period-pill active" data-period="all_time">All Time</button>
+            <button type="button" class="period-pill" data-period="this_year">This Year</button>
+            <button type="button" class="period-pill" data-period="this_month">This Month</button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards Grid -->
+        <div class="stats-kpi-grid">
+          <div class="stats-kpi-card">
+            <div class="kpi-icon-wrap kpi-blue">🎬</div>
+            <div class="kpi-info">
+              <span class="kpi-label">Movies Watched</span>
+              <strong id="stat-movies-watched-val" class="kpi-value">0</strong>
+              <span class="kpi-sub">Completed films</span>
+            </div>
+          </div>
+
+          <div class="stats-kpi-card">
+            <div class="kpi-icon-wrap kpi-purple">📺</div>
+            <div class="kpi-info">
+              <span class="kpi-label">Episodes Watched</span>
+              <strong id="stat-episodes-watched-val" class="kpi-value">0</strong>
+              <span id="stat-seasons-completed-sub" class="kpi-sub">0 seasons completed</span>
+            </div>
+          </div>
+
+          <div class="stats-kpi-card">
+            <div class="kpi-icon-wrap kpi-amber">📖</div>
+            <div class="kpi-info">
+              <span class="kpi-label">Books Completed</span>
+              <strong id="stat-books-completed-val" class="kpi-value">0</strong>
+              <span class="kpi-sub">Finished reads</span>
+            </div>
+          </div>
+
+          <div class="stats-kpi-card">
+            <div class="kpi-icon-wrap kpi-emerald">📄</div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Pages Read</span>
+              <strong id="stat-pages-read-val" class="kpi-value">0</strong>
+              <span id="stat-unfinished-pages-sub" class="kpi-sub">Includes unfinished books</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Viewing Time Card -->
+        <div class="stat-highlight-card viewing-highlight-card">
+          <div class="stat-highlight-header">
+            <div class="stat-highlight-title-group">
+              <span class="highlight-icon">⏱️</span>
+              <div>
+                <h3>Estimated Viewing Time</h3>
+                <span class="disclaimer-badge">Estimated viewing time. Runtime does not measure actual time spent watching.</span>
+              </div>
+            </div>
+            <div class="highlight-main-numbers">
+              <div class="stat-big-number" id="stat-viewing-total-hours">0 hrs</div>
+              <div class="stat-secondary-number" id="stat-viewing-days-hours">0 days, 0 hrs</div>
+            </div>
+          </div>
+
+          <!-- Viewing Split: Movies vs TV -->
+          <div class="viewing-split-grid">
+            <div class="viewing-split-box">
+              <div class="split-header">
+                <span class="split-title">🎬 Movies Viewing Time</span>
+                <strong id="stat-movie-hours-val" class="split-value">0 hrs</strong>
+              </div>
+              <div class="split-sub" id="stat-movie-days-sub">0 days, 0 hrs</div>
+            </div>
+
+            <div class="viewing-split-box">
+              <div class="split-header">
+                <span class="split-title">📺 TV Series Viewing Time</span>
+                <strong id="stat-tv-hours-val" class="split-value">0 hrs</strong>
+              </div>
+              <div class="split-sub" id="stat-tv-days-sub">0 days, 0 hrs</div>
+            </div>
+          </div>
+
+          <!-- Missing Runtime Warning Callout -->
+          <div id="stat-missing-runtime-alert" class="stat-notice-box hidden" role="status"></div>
+        </div>
+
+        <!-- Reading Progress Details Card -->
+        <div class="stat-highlight-card reading-highlight-card">
+          <div class="stat-highlight-header">
+            <div class="stat-highlight-title-group">
+              <span class="highlight-icon">📚</span>
+              <div>
+                <h3>Reading Progress</h3>
+                <span class="stat-card-desc">Page totals combine finished books and pages read so far in current books.</span>
+              </div>
+            </div>
+            <div class="highlight-main-numbers" id="stat-reading-main-numbers">
+              <div class="stat-big-number" id="stat-reading-total-pages">0 pages</div>
+              <div class="stat-secondary-number" id="stat-reading-books-completed">0 books completed</div>
+            </div>
+          </div>
+
+          <!-- Reading Progress Breakdown Grid -->
+          <div class="viewing-split-grid reading-split-grid" id="stat-reading-split-grid">
+            <div class="viewing-split-box">
+              <div class="split-header">
+                <span class="split-title">✅ Finished Books</span>
+                <strong id="stat-reading-finished-pages" class="split-value" style="color: #34d399;">0 pages</strong>
+              </div>
+              <div class="split-sub" id="stat-reading-finished-count">0 books completed</div>
+            </div>
+
+            <div class="viewing-split-box">
+              <div class="split-header">
+                <span class="split-title">📖 In Progress (Reading)</span>
+                <strong id="stat-reading-unfinished-pages" class="split-value" style="color: #60a5fa;">0 pages</strong>
+              </div>
+              <div class="split-sub" id="stat-reading-unfinished-count">0 books in progress</div>
+            </div>
+          </div>
+
+          <!-- Missing Pages Warning Callout -->
+          <div id="stat-missing-pages-alert" class="stat-notice-box hidden" role="status"></div>
+
+          <!-- Reading Empty State -->
+          <div id="stat-reading-empty-state" class="reading-empty-state hidden" role="status">
+            <span>📖</span>
+            <p>No reading activity recorded for this period. Update your book page progress or mark a book completed to start tracking your reading milestones.</p>
+          </div>
+        </div>
+
+        <!-- Activity Charts Grid -->
+        <div class="stats-charts-grid">
+          <!-- Viewing Chart Card -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Viewing Activity (Hours per Month)</h4>
+              <span class="chart-year-badge" id="chart-viewing-year">2026</span>
+            </div>
+            <div class="chart-bars-wrap" id="chart-viewing-bars">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Reading Chart Card -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Reading Activity (Pages per Month)</h4>
+              <span class="chart-year-badge" id="chart-reading-year">2026</span>
+            </div>
+            <div class="chart-bars-wrap" id="chart-reading-bars">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Data Callout -->
+        <div id="stat-historical-callout" class="stat-historical-box hidden">
+          ℹ️ <span id="stat-historical-text">Historical items without dated logs are included in All-Time totals only.</span>
+        </div>
+
+        <!-- Activity History & Corrections Section -->
+        <div class="stat-activity-card">
+          <div class="stat-highlight-header">
+            <div class="stat-highlight-title-group">
+              <span class="highlight-icon">📝</span>
+              <div>
+                <h3>Logged Activity & Corrections</h3>
+                <span class="stat-card-desc">Review your recorded reading and viewing cycles. Edit or remove individual entries to keep stats accurate.</span>
+              </div>
+            </div>
+            <div class="activity-header-actions">
+              <button type="button" id="btn-refresh-activities" class="btn btn-secondary btn-sm" title="Refresh activities">
+                <span class="btn-icon">🔄</span> Refresh
+              </button>
+            </div>
+          </div>
+          <div id="activity-log-list" class="activity-log-list">
+            <div class="activity-empty-state">Loading activity history...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW: GOALS & PLANNING (Combined Top-Level View) -->
+    <!-- ============================================== -->
+    <section id="view-goals-planning" class="view-section">
+      <div class="goals-planning-wrapper">
+        <!-- Sub-navigation Bar -->
+        <div class="subnav-bar">
+          <div class="subnav-tabs" role="tablist" aria-label="Goals and Planning Navigation">
+            <button type="button" id="subtab-goals" class="subnav-btn active" role="tab" aria-selected="true" aria-controls="pane-goals">
+              <span class="subnav-icon">🎯</span> Goals
+            </button>
+            <button type="button" id="subtab-planner" class="subnav-btn" role="tab" aria-selected="false" aria-controls="pane-planner">
+              <span class="subnav-icon">🗓️</span> Weekly Planner
+            </button>
+          </div>
+        </div>
+
+        <!-- Sub-pane 1: Personal Goals -->
+        <div id="pane-goals" class="subnav-pane" role="tabpanel" aria-labelledby="subtab-goals">
+          <div class="goals-container">
+            <!-- Goals Header Bar -->
+            <div class="discover-header-bar">
+              <div class="discover-header-title-group">
+                <span class="discover-header-icon">🎯</span>
+                <div>
+                  <h2>Personal Goals</h2>
+                  <p class="section-sub">Set and conquer yearly book targets, monthly reading goals, and film milestones.</p>
+                </div>
+              </div>
+              <div class="goals-actions">
+                <button type="button" id="btn-open-create-goal-modal" class="btn btn-primary btn-sm">
+                  <span class="btn-icon">➕</span> <span>Set New Goal</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Goals Grid -->
+            <div id="goals-cards-grid" class="goals-cards-grid">
+              <div class="goals-empty-state">
+                <span class="empty-icon">🎯</span>
+                <h3>No Active Goals Set</h3>
+                <p>Define a yearly book target or a monthly reading/movie goal to track your personal entertainment journey.</p>
+                <button type="button" class="btn btn-primary" id="btn-empty-create-goal">Set Your First Goal</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-pane 2: AI Weekly Planner -->
+        <div id="pane-planner" class="subnav-pane hidden" role="tabpanel" aria-labelledby="subtab-planner">
+          <div class="planner-container">
+            <!-- Planner Header -->
+            <div class="discover-header-bar">
+              <div class="discover-header-title-group">
+                <span class="discover-header-icon">🗓️</span>
+                <div>
+                  <h2>AI Weekly Entertainment &amp; Reading Planner</h2>
+                  <p class="section-sub">Plan an attainable weekly schedule tailored strictly to your available time and library.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Planner Form Card -->
+            <div class="planner-form-card">
+              <div id="planner-error-alert" class="planner-alert planner-alert-danger hidden" role="alert" tabindex="-1"></div>
+              <form id="form-generate-plan" class="planner-form standard-form">
+                <div class="planner-inputs-grid">
+                  <div class="form-group">
+                    <label for="planner-time-input">Available Time This Week *</label>
+                    <input type="text" id="planner-time-input" required placeholder="e.g. 3 hours, 90 mins, or 180" class="input-text">
+                    <span class="field-hint">Accepts formats like "3 hours", "90 minutes", "2.5 hrs", or total minutes.</span>
+                  </div>
+                  <div class="form-group">
+                    <label for="planner-reading-speed">Reading Speed (Pages/Hour)</label>
+                    <input type="number" id="planner-reading-speed" value="30" min="5" max="200" class="input-text">
+                    <span class="field-hint">Used to calculate realistic reading session durations.</span>
+                  </div>
+                  <div class="form-group">
+                    <label for="planner-goal-select">Align with Goal (Optional)</label>
+                    <select id="planner-goal-select" class="input-select">
+                      <option value="">No goal focus (Balanced)</option>
+                    </select>
+                    <span class="field-hint">Prioritizes entertainment that contributes to this goal.</span>
+                  </div>
+                </div>
+
+                <div class="planner-types-group">
+                  <span class="types-label">Include in Plan (at least one):</span>
+                  <label class="checkbox-label" for="planner-type-movies">
+                    <input type="checkbox" id="planner-type-movies" checked value="movie">
+                    <span>Movies</span>
+                  </label>
+                  <label class="checkbox-label" for="planner-type-tv">
+                    <input type="checkbox" id="planner-type-tv" checked value="tv">
+                    <span>Next TV Episodes</span>
+                  </label>
+                  <label class="checkbox-label" for="planner-type-books">
+                    <input type="checkbox" id="planner-type-books" checked value="book">
+                    <span>Book Reading Sessions</span>
+                  </label>
+                </div>
+
+                <div class="planner-actions">
+                  <button type="submit" id="btn-generate-weekly-plan" class="btn btn-ai-sparkle">
+                    <span>✨</span> Generate Weekly Plan
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Generated Plan Result Container -->
+            <div id="planner-result-container" class="planner-result-container hidden">
+              <div id="planner-stale-notice" class="planner-stale-banner hidden" role="status">
+                ⚠️ <span>Input settings have changed. This plan was generated using previous settings. Click <strong>Generate Weekly Plan</strong> to refresh.</span>
+              </div>
+              <div class="planner-plan-header">
+                <div class="plan-header-left">
+                  <div class="plan-summary-badge" id="planner-budget-summary">0 / 0 mins planned</div>
+                  <div id="planner-method-badge" class="planner-method-badge"></div>
+                </div>
+                <button type="button" id="btn-save-current-plan" class="btn btn-primary btn-sm">
+                  <span>💾</span> Save This Plan
+                </button>
+              </div>
+              <div id="planner-fallback-reason-alert" class="planner-alert planner-alert-warning hidden" role="status"></div>
+              <div id="planner-settings-bar" class="planner-settings-bar"></div>
+              <div id="planner-explanation-card" class="planner-explanation-card"></div>
+              <div id="planner-unused-time-card" class="planner-unused-time-card hidden"></div>
+              <div id="planner-activities-list" class="planner-activities-grid"></div>
+            </div>
+
+            <!-- Saved Plans Section -->
+            <div class="saved-plans-section">
+              <div class="saved-plans-header">
+                <h3>Saved Plans History</h3>
+              </div>
+              <div id="saved-plans-list" class="saved-plans-grid">
+                <div class="saved-plans-empty">No saved plans yet. Generate and save a plan above.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW: EPISODE CALENDAR -->
+    <!-- ============================================== -->
+    <section id="view-calendar" class="view-section">
+      <div class="calendar-container">
+        <!-- Calendar Header -->
+        <div class="discover-header-bar">
+          <div class="discover-header-title-group">
+            <span class="discover-header-icon">📅</span>
+            <div>
+              <h2>Episode Calendar & Schedule</h2>
+              <p class="section-sub">Upcoming released and scheduled episodes for series you follow in your library.</p>
+            </div>
+          </div>
+          <div class="calendar-controls">
+            <div class="calendar-filter-group">
+              <select id="calendar-days-select" class="input-select input-select-sm">
+                <option value="7">Next 7 Days</option>
+                <option value="14">Next 14 Days</option>
+                <option value="30" selected>Next 30 Days</option>
+                <option value="60">Next 60 Days</option>
+              </select>
+              <label class="checkbox-label checkbox-label-sm">
+                <input type="checkbox" id="calendar-include-watched"> Show watched
+              </label>
+              <button type="button" id="btn-refresh-calendar" class="btn btn-secondary btn-sm" title="Refresh calendar">
+                <span class="btn-icon">🔄</span> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar Timezone & Server Notice -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+          <div class="calendar-tz-badge" id="calendar-tz-display">
+            🕒 All airtimes displayed in UTC
+          </div>
+          <div class="calendar-server-info" id="calendar-sync-notice" style="font-size:0.8rem; color:#94a3b8;">
+            ℹ️ Automatic checks run in the background only while the local server is running.
+          </div>
+        </div>
+
+        <!-- Calendar Agenda Sections -->
+        <div class="calendar-agenda-container" id="calendar-agenda-container">
+          <!-- 1. Today -->
+          <div class="agenda-section" id="agenda-section-today">
+            <div class="agenda-section-header">
+              <span class="agenda-dot dot-today"></span>
+              <h3>📌 Airing Today</h3>
+            </div>
+            <div class="agenda-episodes-grid" id="agenda-grid-today">
+              <div class="agenda-empty-text">No episodes airing today.</div>
+            </div>
+          </div>
+
+          <!-- 2. This Week -->
+          <div class="agenda-section" id="agenda-section-this-week">
+            <div class="agenda-section-header">
+              <span class="agenda-dot dot-week"></span>
+              <h3>🗓️ This Week (Next 7 Days)</h3>
+            </div>
+            <div class="agenda-episodes-grid" id="agenda-grid-this-week">
+              <div class="agenda-empty-text">No upcoming episodes scheduled this week.</div>
+            </div>
+          </div>
+
+          <!-- 3. Later -->
+          <div class="agenda-section" id="agenda-section-later">
+            <div class="agenda-section-header">
+              <span class="agenda-dot dot-later"></span>
+              <h3>🔭 Coming Up Later</h3>
+            </div>
+            <div class="agenda-episodes-grid" id="agenda-grid-later">
+              <div class="agenda-empty-text">No upcoming episodes scheduled for later.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW: DISCOVER TV SHOWS -->
+    <!-- ============================================== -->
+    <section id="view-discover" class="view-section">
+      <div class="discover-container">
+        <!-- Discover Header Bar -->
+        <div class="discover-header-bar">
+          <div class="discover-header-title-group">
+            <span class="discover-header-icon">🧭</span>
+            <div>
+              <h2>Discover TV Shows</h2>
+              <p class="section-sub">Explore popular, trending, and currently airing series from TMDB.</p>
+            </div>
+          </div>
+          <div class="discover-controls">
+            <span id="discover-last-updated" class="discover-updated-tag">Updating...</span>
+            <button type="button" id="btn-refresh-discover" class="btn btn-secondary btn-sm" title="Refresh discovery lists">
+              <span class="btn-icon">🔄</span> <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TMDB Unconfigured Banner -->
+        <div id="discover-unconfigured-banner" class="discover-banner discover-banner-warning hidden" role="region" aria-label="TMDB Configuration Needed">
+          <div class="banner-icon">⚙️</div>
+          <div class="banner-body">
+            <h3>TMDB API Key Required</h3>
+            <p>To enable live discovery lists for Popular, Trending, Currently Airing, and Upcoming TV shows, configure a server-side TMDB API key:</p>
+            <ol class="banner-steps">
+              <li>Sign up for a free developer account at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a> and obtain your API Read Access Token or API Key (v3).</li>
+              <li>Add <code>TMDB_API_KEY=your_key_here</code> to your local <code>.env</code> file (or set the environment variable).</li>
+              <li>Restart the MediaVault server. Credentials remain securely on the server and are never committed or exposed to the client.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Potentially Outdated Cache Banner -->
+        <div id="discover-cache-notice" class="discover-banner discover-banner-info hidden" role="status">
+          <div class="banner-icon">⚠️</div>
+          <div class="banner-body">
+            <strong>Showing cached discovery data:</strong> The server was unable to refresh live lists from TMDB just now. Existing cached results are displayed and marked as potentially outdated.
+          </div>
+        </div>
+
+        <!-- Discovery Rows Container -->
+        <div id="discover-rows-container" class="discover-rows-container">
+          <!-- 1. Popular TV Shows -->
+          <div class="discover-row-section" id="discover-category-popular">
+            <div class="discover-row-header">
+              <div class="row-header-title">
+                <span class="row-icon">🔥</span>
+                <h3>Popular TV Shows</h3>
+                <span class="row-badge">Popular right now</span>
+              </div>
+            </div>
+            <div class="discover-scroll-wrap">
+              <button type="button" class="scroll-arrow scroll-arrow-left" data-target="discover-row-popular" aria-label="Scroll Popular TV Shows left">‹</button>
+              <div class="discover-poster-row" id="discover-row-popular" role="region" aria-label="Popular TV Shows list">
+                <div class="discover-loading-skeleton">Loading popular shows...</div>
+              </div>
+              <button type="button" class="scroll-arrow scroll-arrow-right" data-target="discover-row-popular" aria-label="Scroll Popular TV Shows right">›</button>
+            </div>
+          </div>
+
+          <!-- 2. Trending TV Shows -->
+          <div class="discover-row-section" id="discover-category-trending">
+            <div class="discover-row-header">
+              <div class="row-header-title">
+                <span class="row-icon">📈</span>
+                <h3>Trending TV Shows</h3>
+                <span class="row-badge">Today's trending</span>
+              </div>
+            </div>
+            <div class="discover-scroll-wrap">
+              <button type="button" class="scroll-arrow scroll-arrow-left" data-target="discover-row-trending" aria-label="Scroll Trending TV Shows left">‹</button>
+              <div class="discover-poster-row" id="discover-row-trending" role="region" aria-label="Trending TV Shows list">
+                <div class="discover-loading-skeleton">Loading trending shows...</div>
+              </div>
+              <button type="button" class="scroll-arrow scroll-arrow-right" data-target="discover-row-trending" aria-label="Scroll Trending TV Shows right">›</button>
+            </div>
+          </div>
+
+          <!-- 3. Currently Airing -->
+          <div class="discover-row-section" id="discover-category-airing">
+            <div class="discover-row-header">
+              <div class="row-header-title">
+                <span class="row-icon">📺</span>
+                <h3>Currently Airing</h3>
+                <span class="row-badge">Airing this week</span>
+              </div>
+            </div>
+            <div class="discover-scroll-wrap">
+              <button type="button" class="scroll-arrow scroll-arrow-left" data-target="discover-row-airing" aria-label="Scroll Currently Airing shows left">‹</button>
+              <div class="discover-poster-row" id="discover-row-airing" role="region" aria-label="Currently Airing TV Shows list">
+                <div class="discover-loading-skeleton">Loading currently airing shows...</div>
+              </div>
+              <button type="button" class="scroll-arrow scroll-arrow-right" data-target="discover-row-airing" aria-label="Scroll Currently Airing shows right">›</button>
+            </div>
+          </div>
+
+          <!-- 4. Upcoming TV Shows -->
+          <div class="discover-row-section" id="discover-category-upcoming">
+            <div class="discover-row-header">
+              <div class="row-header-title">
+                <span class="row-icon">✨</span>
+                <h3>Upcoming TV Shows</h3>
+                <span class="row-badge">Coming soon</span>
+              </div>
+            </div>
+            <div class="discover-scroll-wrap">
+              <button type="button" class="scroll-arrow scroll-arrow-left" data-target="discover-row-upcoming" aria-label="Scroll Upcoming TV Shows left">‹</button>
+              <div class="discover-poster-row" id="discover-row-upcoming" role="region" aria-label="Upcoming TV Shows list">
+                <div class="discover-loading-skeleton">Loading upcoming shows...</div>
+              </div>
+              <button type="button" class="scroll-arrow scroll-arrow-right" data-target="discover-row-upcoming" aria-label="Scroll Upcoming TV Shows right">›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TMDB Legal Attribution -->
+        <footer class="discover-attribution-card">
+          <div class="attribution-content">
+            <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+          </div>
+        </footer>
       </div>
     </section>
 
@@ -484,6 +1157,15 @@
               </div>
             </div>
 
+            <!-- Fields specific to Movies -->
+            <div id="manual-movie-fields" class="conditional-fields hidden">
+              <div class="form-row">
+                <label for="manual-movie-runtime">Runtime (minutes)</label>
+                <input type="number" id="manual-movie-runtime" min="0" placeholder="e.g. 142">
+                <span class="field-hint" style="font-size:0.75rem; color:#94a3b8;">Estimated viewing time (minutes)</span>
+              </div>
+            </div>
+
             <!-- Fields specific to TV Series -->
             <div id="manual-tv-fields" class="conditional-fields">
               <div class="form-cols">
@@ -606,8 +1288,32 @@
             </div>
           </div>
 
+          <!-- Movie specific fields -->
+          <div id="edit-movie-fields" class="conditional-fields hidden">
+            <div class="form-row">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="edit-movie-runtime">Runtime (minutes)</label>
+                <span id="edit-movie-manual-indicator" class="badge-tag hidden" style="font-size:0.72rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8;">✏️ Manual Correction Preserved</span>
+              </div>
+              <input type="number" id="edit-movie-runtime" min="0" placeholder="e.g. 142">
+              <span class="field-hint" style="font-size:0.75rem; color:#94a3b8;">Estimated viewing time in minutes. Leave empty or 0 if unknown.</span>
+            </div>
+            <div class="movie-metadata-refresh-row" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:var(--radius-sm); padding:0.5rem 0.75rem; margin-top:0.5rem; margin-bottom:0.5rem;">
+              <div>
+                <div id="edit-movie-tmdb-info" style="font-size:0.8rem; color:#e2e8f0; font-weight:600;">TMDB Metadata</div>
+                <div id="edit-movie-tmdb-sub" style="font-size:0.75rem; color:#94a3b8;">Official runtime and details from TMDB.</div>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <button type="button" id="btn-refresh-modal-movie" class="btn btn-sm btn-secondary">🔄 Refresh</button>
+                <button type="button" id="btn-link-modal-movie" class="btn btn-sm btn-outline">🔗 Link / Match</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Series specific fields -->
           <div id="edit-tv-fields" class="conditional-fields hidden">
+            <div id="edit-tv-invalid-alert" class="episode-invalid-alert hidden" style="margin-bottom:0.75rem;"></div>
+            <div id="edit-tv-hint" style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.5rem;"></div>
             <div class="series-live-refresh-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
               <span style="font-size:0.8rem; color:#94a3b8;">Real-time TVMaze episode sync:</span>
               <button type="button" id="btn-refresh-single-series" class="btn btn-sm btn-secondary">
@@ -617,12 +1323,17 @@
             <div class="form-cols">
               <div class="form-row">
                 <label for="edit-cur-season">Watched Season</label>
-                <input type="number" id="edit-cur-season" min="1">
+                <input type="number" id="edit-cur-season" min="0">
+                <div id="edit-season-error" class="field-error-message hidden" role="alert"></div>
               </div>
               <div class="form-row">
                 <label for="edit-cur-episode">Watched Episode</label>
                 <input type="number" id="edit-cur-episode" min="0">
+                <div id="edit-episode-error" class="field-error-message hidden" role="alert"></div>
               </div>
+            </div>
+            <div id="edit-tv-shortcut-notice" class="tv-shortcut-notice">
+              💡 <em>Shortcut: Marking watched through Season S Episode E marks released episodes up to this point as watched. Out-of-order progress will not be removed.</em>
             </div>
             <div class="form-cols">
               <div class="form-row">
@@ -684,6 +1395,179 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- MODAL: LINK MOVIE TO TMDB -->
+  <!-- ============================================== -->
+  <div id="modal-link-movie" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-link-movie-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-link-movie-title">Link Movie to TMDB</h2>
+        <button id="btn-close-link-movie-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:1rem;">
+          Select the correct TMDB movie to link. This will automatically import its official runtime and poster. Your watched status, review notes, and viewing history will be preserved.
+        </p>
+        <div class="search-box">
+          <input type="text" id="input-link-movie-search" placeholder="Search TMDB for matching movie (e.g. Spider-Man)...">
+          <button id="btn-link-movie-search" class="btn btn-primary">Search TMDB</button>
+        </div>
+        <div id="results-link-movie" class="search-results-list" style="margin-top:1rem;"></div>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-link-movie-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: TV SERIES SEASONS & EPISODES -->
+  <!-- ============================================== -->
+  <div id="modal-series-detail" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-series-title">
+    <div class="modal-dialog series-detail-dialog">
+      <div class="modal-header series-detail-header">
+        <div class="series-header-info">
+          <div class="series-poster-thumb" id="series-modal-poster-wrap"></div>
+          <div class="series-header-text">
+            <h2 id="modal-series-title">Series Title</h2>
+            <div class="series-header-meta" id="series-modal-meta"></div>
+          </div>
+        </div>
+        <div class="series-header-actions">
+          <div id="series-modal-quick-progress"></div>
+          <button id="btn-close-series-modal" class="btn-close" aria-label="Close modal">&times;</button>
+        </div>
+      </div>
+
+      <div class="modal-body series-detail-body">
+        <div id="series-detail-alert-box" class="hidden" role="alert"></div>
+
+        <div class="seasons-container">
+          <div class="seasons-header-bar">
+            <h3 id="seasons-count-title">Seasons</h3>
+            <div class="overall-progress-stats" id="series-overall-stats"></div>
+          </div>
+
+          <div id="seasons-list" class="seasons-list">
+            <!-- Dynamic Season Rows -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: CONFIRM CATCH-UP / EARLIER EPISODES -->
+  <!-- ============================================== -->
+  <div id="modal-confirm-earlier-episodes" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-earlier-title">
+    <div class="modal-dialog modal-dialog-sm earlier-episodes-dialog">
+      <div class="modal-header">
+        <h2 id="modal-earlier-title">Have you also watched the earlier episodes?</h2>
+        <button id="btn-close-earlier-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="earlier-episodes-summary">
+          <div class="earlier-episodes-prompt">
+            <p style="margin-bottom: 0.5rem;">
+              You are marking <strong id="earlier-selected-ep-label" style="color: #60a5fa;">Season 2, Episode 14</strong> as watched.
+            </p>
+            <p id="earlier-unwatched-desc" class="earlier-unwatched-desc" style="margin-bottom: 0.75rem;">
+              There <span id="earlier-unwatched-plural">are</span> <strong id="earlier-unwatched-count" style="color: #f59e0b;">0</strong> earlier unwatched released episode<span id="earlier-unwatched-s">s</span> before this one.
+            </p>
+            <div id="earlier-seasons-badge" class="earlier-seasons-badge" style="padding: 0.6rem 0.8rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 0.85rem; color: #93c5fd; margin-bottom: 1rem;">
+              <!-- e.g. "Includes Season 1 (2 episodes) and Season 2 (3 episodes)" -->
+            </div>
+          </div>
+
+          <!-- Historical Catch-Up Date Option -->
+          <div class="form-row catch-up-date-row" style="margin-bottom: 1.25rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
+            <label class="checkbox-label" style="font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: flex-start; gap: 0.5rem;">
+              <input type="checkbox" id="earlier-unknown-date-checkbox" checked style="margin-top: 0.15rem;">
+              <span>Leave viewing date unknown for earlier episodes (historical catch-up)</span>
+            </label>
+            <span class="field-hint" style="display:block; margin-top:0.35rem; font-size:0.75rem; color:#94a3b8; line-height: 1.35;">
+              Counts towards all-time viewing totals without inflating this month's statistics or monthly goals.
+            </span>
+          </div>
+        </div>
+
+        <div class="earlier-episodes-actions" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <button type="button" id="btn-mark-earlier-too" class="btn btn-primary btn-block">Mark earlier episodes too</button>
+          <button type="button" id="btn-only-this-episode" class="btn btn-secondary btn-block">Only this episode</button>
+          <button type="button" id="btn-cancel-earlier-dialog" class="btn btn-outline btn-block">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: CONFIRM MARK SEASON WATCHED -->
+  <!-- ============================================== -->
+  <div id="modal-confirm-season-watched" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-season-watched-title">
+    <div class="modal-dialog modal-dialog-sm earlier-episodes-dialog">
+      <div class="modal-header">
+        <h2 id="modal-season-watched-title">Mark Season as Watched</h2>
+        <button id="btn-close-season-watched-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="season-watched-summary" style="margin-bottom: 1.25rem;">
+          <p id="season-watched-prompt" style="margin-bottom: 0.85rem; font-size: 0.95rem; line-height: 1.45; color: #f1f5f9;">
+            Earlier seasons contain unwatched released episodes. How would you like to mark them?
+          </p>
+
+          <div id="season-watched-options-breakdown" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <!-- Option 1 Summary Card -->
+            <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem 1rem;">
+              <div style="font-weight: 600; color: #60a5fa; margin-bottom: 0.25rem; font-size: 0.9rem;">Option 1: Only this season</div>
+              <div id="season-opt1-detail" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.35;"></div>
+            </div>
+            <!-- Option 2 Summary Card -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.75rem 1rem;">
+              <div style="font-weight: 600; color: #34d399; margin-bottom: 0.25rem; font-size: 0.9rem;">Option 2: This season and earlier seasons</div>
+              <div id="season-opt2-detail" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.35;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="season-watched-actions" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <button type="button" id="btn-mark-season-only" class="btn btn-secondary btn-block">Mark only this season</button>
+          <button type="button" id="btn-mark-season-and-earlier" class="btn btn-primary btn-block">Mark this season and earlier seasons</button>
+          <button type="button" id="btn-cancel-season-watched" class="btn btn-outline btn-block">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: DISCOVER SHOW DETAIL -->
+  <!-- ============================================== -->
+  <div id="modal-discover-detail" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-discover-title">
+    <div class="modal-dialog discover-detail-dialog">
+      <div class="modal-header">
+        <h2 id="modal-discover-title">Show Details</h2>
+        <button id="btn-close-discover-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body discover-detail-body">
+        <div class="discover-detail-layout">
+          <div class="discover-detail-poster-wrap" id="discover-detail-poster-wrap"></div>
+          <div class="discover-detail-info">
+            <h3 id="discover-modal-show-name" class="discover-modal-show-name"></h3>
+            <div class="discover-modal-meta-row" id="discover-modal-meta-row"></div>
+            <div class="discover-modal-genres" id="discover-modal-genres"></div>
+            <div class="discover-modal-overview" id="discover-modal-overview"></div>
+            <div class="discover-modal-actions" id="discover-modal-actions"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Undo Toast Container -->
+  <div id="undo-toast-container" class="undo-toast-container hidden" role="status" aria-live="polite">
+    <span id="undo-toast-text"></span>
+    <button type="button" id="btn-undo-action" class="btn btn-sm btn-undo">Undo</button>
+  </div>
+
+  <!-- ============================================== -->
   <!-- MODAL: AUTHENTICATION (LOGIN / REGISTER) -->
   <!-- ============================================== -->
   <div id="modal-auth" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title">
@@ -708,7 +1592,19 @@
           </div>
           <div class="form-row">
             <label for="login-password">Password</label>
-            <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••">
+            <div class="password-input-wrapper">
+              <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••">
+              <button type="button" id="btn-toggle-login-password" class="btn-password-toggle" aria-label="Show password" title="Show password" aria-controls="login-password">
+                <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-icon eye-hide hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-block">Sign In</button>
@@ -736,6 +1632,145 @@
           </div>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- FLOATING ASSISTANT BUTTON & SLIDE-OUT DRAWER -->
+  <!-- ============================================== -->
+  <button id="btn-toggle-assistant" class="floating-assistant-btn" aria-label="Open Library AI Assistant">
+    <span class="btn-icon">✨</span>
+    <span class="btn-text">Ask Library</span>
+  </button>
+
+  <aside id="assistant-drawer" class="assistant-drawer hidden" aria-labelledby="assistant-drawer-title">
+    <div class="assistant-header">
+      <div class="assistant-title-group">
+        <span class="assistant-header-icon">✨</span>
+        <div>
+          <h3 id="assistant-drawer-title">Library Assistant</h3>
+          <span class="assistant-subtitle">Connected to your private database via Gemini Tools</span>
+        </div>
+      </div>
+      <button id="btn-close-assistant" class="btn-close" aria-label="Close assistant">&times;</button>
+    </div>
+
+    <!-- Quick Prompts Bar -->
+    <div class="assistant-prompts-bar">
+      <button type="button" class="assistant-chip-btn" data-prompt="Which of my unread books would suit a weekend read?">📖 Weekend Unread Book</button>
+      <button type="button" class="assistant-chip-btn" data-prompt="What movies on my watchlist should I watch next?">🎬 Watchlist Movie</button>
+      <button type="button" class="assistant-chip-btn" data-prompt="Do I have any TV series with new episodes to watch?">📺 TV Episodes Ready</button>
+      <button type="button" class="assistant-chip-btn" data-prompt="Give me a summary of my library reading and watching stats">📊 Library Stats</button>
+    </div>
+
+    <!-- Message Stream -->
+    <div id="assistant-messages" class="assistant-messages" role="log" aria-live="polite">
+      <div class="assistant-msg msg-ai">
+        <div class="msg-avatar">✨</div>
+        <div class="msg-body">
+          <p>Hello! I am your <strong>MediaVault Library Assistant</strong>. I have direct, read-only access to your logged movies, TV series, and books via controlled server tools.</p>
+          <p>Try asking me questions like:</p>
+          <ul>
+            <li><em>"Which of my unread books would suit a weekend?"</em></li>
+            <li><em>"What thriller movies do I have on my plan-to-watch list?"</em></li>
+            <li><em>"Give me a summary of my reading progress."</em></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Form -->
+    <form id="assistant-form" class="assistant-input-form">
+      <input type="text" id="assistant-input" placeholder="Ask about your library records..." autocomplete="off" required maxlength="1000">
+      <button type="submit" id="btn-assistant-send" class="btn btn-primary btn-assistant-send" title="Send question">
+        <span>➤</span>
+      </button>
+    </form>
+  </aside>
+
+  <!-- ============================================== -->
+  <!-- MODAL: CREATE / EDIT PERSONAL GOAL -->
+  <!-- ============================================== -->
+  <div id="modal-goal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-goal-title">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h2 id="modal-goal-title">Set Personal Goal</h2>
+        <button id="btn-close-goal-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="form-goal" class="standard-form">
+        <input type="hidden" id="goal-id" value="">
+        <div class="form-row" id="goal-type-row">
+          <label for="goal-type-select">Goal Category *</label>
+          <select id="goal-type-select" required class="input-select">
+            <option value="books_yearly">📚 Books Goal (Yearly)</option>
+            <option value="pages_monthly">📖 Pages Read Goal (Monthly)</option>
+            <option value="movies_monthly">🎬 Movies Watched Goal (Monthly)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="goal-target-input">Target Goal Amount *</label>
+          <input type="number" id="goal-target-input" required min="1" step="1" placeholder="e.g. 12" class="input-text">
+          <span class="field-hint" id="goal-target-hint">Target number of books to complete this year.</span>
+        </div>
+        <div class="form-row" id="goal-timeframe-row">
+          <div class="split-inputs-row">
+            <div class="form-sub-group">
+              <label for="goal-year-input">Year *</label>
+              <input type="number" id="goal-year-input" required min="2020" max="2100" class="input-text">
+            </div>
+            <div class="form-sub-group" id="goal-month-group">
+              <label for="goal-month-select">Month *</label>
+              <select id="goal-month-select" class="input-select">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="goal-include-repeats" checked> Count repeat viewings / rereads toward this goal
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-goal" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-goal" class="btn btn-primary">Save Goal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: EDIT ACTIVITY ENTRY -->
+  <!-- ============================================== -->
+  <div id="modal-activity-edit" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-activity-title">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h2 id="modal-activity-title">Correct Activity Entry</h2>
+        <button id="btn-close-activity-modal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="form-edit-activity" class="standard-form">
+        <input type="hidden" id="edit-activity-id" value="">
+        <div class="form-row">
+          <label id="edit-activity-value-label" for="edit-activity-value">Value *</label>
+          <input type="number" id="edit-activity-value" required min="0" step="1" class="input-text">
+          <span class="field-hint">Updating this value marks this record as an edit/correction.</span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-activity-edit" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-activity-edit" class="btn btn-primary">Save Correction</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -343,3 +343,11 @@ export const passwordChangeLimiter = createRateLimiter({
   keyGenerator: (req) => (req.user?.id ? `user_${req.user.id}_pwd` : `${req.ip || 'ip'}_pwd`)
 });
 
+// Rate limiter for AI Assistant queries: Max 15 requests per 10 minutes per logged-in user
+export const assistantLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 15,
+  message: 'Assistant request limit reached (max 15 queries per 10 minutes). Please wait a few minutes before asking more questions.',
+  keyGenerator: (req) => (req.user?.id ? `user_${req.user.id}_asst` : `${req.ip || 'ip'}_asst`)
+});
+

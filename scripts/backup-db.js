@@ -11,13 +11,15 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 const DB_PATH = process.env.DB_PATH || path.join(rootDir, 'data', 'media_vault.db');
-const backupsDir = path.join(rootDir, 'data', 'backups');
+const defaultBackupsDir = path.join(rootDir, 'data', 'backups');
 
-export function backupDatabase(customLabel = '') {
+export function backupDatabase(customLabel = '', customDestDir = process.env.BACKUP_DIR || '') {
   if (!fs.existsSync(DB_PATH)) {
     console.warn(`[Backup] Source database file not found at ${DB_PATH}. Skipping backup.`);
     return null;
   }
+
+  const backupsDir = customDestDir ? path.resolve(customDestDir) : defaultBackupsDir;
 
   if (!fs.existsSync(backupsDir)) {
     fs.mkdirSync(backupsDir, { recursive: true });
@@ -62,8 +64,31 @@ export function backupDatabase(customLabel = '') {
   }
 }
 
+export function verifyDatabaseBackup(backupFilePath) {
+  if (!fs.existsSync(backupFilePath)) {
+    throw new Error(`Backup file not found: ${backupFilePath}`);
+  }
+  const checkDb = new DatabaseSync(backupFilePath, { readOnly: true });
+  try {
+    const integrity = checkDb.prepare('PRAGMA integrity_check').all();
+    const isOk = integrity.length === 1 && integrity[0].integrity_check === 'ok';
+    if (!isOk) {
+      throw new Error(`Integrity check failed: ${JSON.stringify(integrity)}`);
+    }
+    const tableCount = checkDb.prepare("SELECT COUNT(*) as c FROM sqlite_master WHERE type='table'").get().c;
+    return { ok: true, tableCount, integrity: integrity[0].integrity_check };
+  } finally {
+    checkDb.close();
+  }
+}
+
 // Run directly from CLI
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const label = process.argv[2] || 'manual';
-  backupDatabase(label);
+  const destDir = process.argv[3] || process.env.BACKUP_DIR || '';
+  const backupFile = backupDatabase(label, destDir);
+  if (backupFile) {
+    const verification = verifyDatabaseBackup(backupFile);
+    console.log(`✅ [Backup] Verified readable (${verification.tableCount} tables), PRAGMA integrity_check: ${verification.integrity}`);
+  }
 }

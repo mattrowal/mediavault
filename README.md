@@ -46,6 +46,8 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ###  1. TV Series & Episode Monitoring
 - Track exact watched progress (`Season X, Episode Y`).
+- Visual **Season Overview**: Each series card opens an interactive season-by-season and episode-by-episode breakdown with episode posters, titles, air dates, and individual watch toggles.
+- Distinct statuses: **Not Started**, **In Progress**, **Completed** (all aired episodes watched), or **Caught Up** (all currently released episodes watched in an ongoing season).
 - Automatically queries the **TVMaze API** for schedule and air date data.
 - **Unwatched Released Indicator**: Automatically calculates when new episodes have aired ahead of your watched progress (e.g. `⚡ 3 unwatched released episodes`).
 - **Live Sync**: Refresh any series on opening or via the manual refresh button to fetch the latest episode air dates.
@@ -67,9 +69,57 @@ A modern, full-stack media database and tracking application that allows you to:
 - Generates 4 to 6 tailored recommendations with articulate explanations explaining **why** you will enjoy each title based on what you previously loved.
 - One-click **" Add to Library"** button to immediately save recommendations to your plan-to-watch or reading wishlist.
 
+###  5. Personal Statistics & Activity History
+- Scoped strictly to the logged-in user.
+- **Viewing Totals**: Sums exact runtimes of watched movies and individual watched episodes (labelled *"Estimated viewing time"*, displayed in total hours and breakdown of days + hours).
+- **Reading Totals**: Completed books and total pages read across all sessions (including progress in unfinished books).
+- **Time Filters**: Filter statistics by **All time**, **This year**, and **This month**.
+- **Interactive Activity History**: Review, edit, and delete logged viewing and reading sessions. Supports correcting timestamps or page deltas without corrupting underlying library counts.
+
+###  6. Discover Page (TV Series Discovery)
+- Powered by TMDB API with four curated categories: *Trending This Week*, *Critically Acclaimed*, *Popular Sci-Fi & Fantasy*, and *Binge-Worthy Dramas*.
+- Clear indicator of service configuration status (`Live TMDB` vs unconfigured message).
+- In-memory caching with graceful stale-data retention if TMDB experiences downtime.
+- In-library indicators with one-click *"Add to Library"* button that prevents duplicate additions.
+
+###  7. Repeat Viewing & Rereading (Consumption Cycles)
+- **Discrete Cycles (`consumption_cycles`)**: Track rewatches of movies, series, or rereads of books without losing historical records.
+- Each cycle maintains its own `started_at`, `completed_at`, and status (`in_progress` or `completed`).
+- **Episode Tracking Per Cycle**: Series episode completions are linked to the active cycle number (`cycle_number` in `watched_episodes`), allowing clean tracking of multiple full or partial series rewatches.
+- **Explicit Action Required**: Starting a new cycle requires clicking the explicit "Rewatch" or "Reread" button. Repeated clicks or saving the same progress are idempotent and will never create duplicate cycles.
+- **Statistics Counting**: Separates **Unique Titles** (e.g. 5 unique movies watched) from **Total Completions** (e.g. 7 completions including 2 rewatches).
+
+###  8. Personal Goals
+- Create tailored reading and viewing targets:
+  - **Yearly Books Completed** (e.g. 24 books in 2026)
+  - **Monthly Pages Read** (e.g. 1,000 pages in September)
+  - **Monthly Movies Watched** (e.g. 8 movies in September)
+- **Timezone Awareness**: Strict calendar date boundaries (`start_date` and `end_date`) computed using the user's local timezone.
+- **Repeat Inclusion Control**: Users can toggle `include_repeats` per goal to decide whether reread books or rewatched movies contribute to the goal target.
+- **Real-Time Progress**: Automatically calculated from the user's discrete activity logs and completed cycles.
+- **Duplicate Prevention**: Enforces at most one active goal per metric per timeframe.
+
+###  9. AI Weekly Planner (Powered by Gemini 3.6 Flash)
+- Generates a customized weekly media schedule fitting the user's available time budget (e.g. `"5 hours"`, `"90 mins"`, `"10h 30m"`).
+- **Strict Candidate Rules**: Selects **ONLY** items already existing in the user's private library:
+  - Unwatched released TV episodes (verified against TVMaze schedule).
+  - Unread or currently reading books (using user's reading speed, e.g. 30 pages/hour).
+  - Unwatched movies in the user's library.
+- **No Hallucinated Runtimes**: Items missing verified runtimes or page counts are strictly excluded from planning candidates.
+- **Goal-Informed Prioritization**: Automatically prioritizes media types matching active personal goals.
+- **Deterministic Knapsack Fallback**: Seamlessly generates optimized plans even if the Gemini API is offline, experiencing high demand, or not configured.
+- **Safe Persistence**: Saving a plan records it in `saved_plans` for reference and **never** alters the watched/read status of items in the library.
+
+###  10. Episode Calendar & Notifications
+- **Agenda View**: Upcoming episodes for all followed TV series organized into **Today**, **This Week**, and **Later**.
+- Formatted relative air dates (e.g. `"Tomorrow at 20:00"`, `"In 3 days"`) with local timezone display.
+- **Per-Series Notification Toggle**: Enable or disable notifications per series (`notify_enabled`).
+- **Bounded Catch-Up Monitor**: Background episode monitor features a strict 7-day lookback limit upon server restart, preventing notification floods for historical episodes.
+- **Deduplication**: Composite unique constraints prevent duplicate notifications for the same episode.
+
 ---
 
-### 5. Multi-User Authentication & Account Management
+###  11. Multi-User Authentication & Account Management
 - **Secure Password Hashing:** Implements asynchronous `crypto.scrypt` with a unique 16-byte random salt per user and timing-safe comparison (`timingSafeEqual`) to prevent timing side-channel attacks. Passwords are never logged or stored in plaintext.
 - **Strong Password Policy:** Enforces a minimum of 15 characters for registration and password changes, supporting password-manager-generated strings, arbitrary unicode, spaces, and passphrases of 64+ characters (up to 256 characters), while preserving login compatibility for existing accounts.
 - **Account View & Password Change:** Logged-in users can update their password from the Account section. Requires current password verification, confirmation match, and rejection of identical new passwords.
@@ -78,6 +128,70 @@ A modern, full-stack media database and tracking application that allows you to:
 
 ---
 
+##  Counting Rules & Calculation Logic
+
+1. **Viewing Time Calculations**:
+   - Total estimated viewing time sums runtimes of verified watched movies and individual watched episodes.
+   - Partially watched series only count the runtimes of the episodes actually marked watched, never the entire series.
+   - Items with missing runtimes are counted in episode/movie counts but add 0 to viewing time (no runtimes are invented).
+2. **Unique vs. Total Completions**:
+   - **Unique Items Completed**: Counts distinct item IDs that have at least one completed cycle or are marked completed in the library.
+   - **Total Completions**: Sums all completed cycles across all items (e.g., watching a movie twice equals 1 unique title and 2 total completions).
+3. **Reading Progress & Corrections**:
+   - Reading progress updates log an activity delta (`new_page - old_page`).
+   - Editing an activity entry updates the recorded reading delta and notes `is_correction = 1`.
+   - Correcting an activity does not fabricate extra reading sessions or corrupt historical goal boundaries.
+4. **Goal Boundary & Repeat Inclusions**:
+   - Yearly goals evaluate activities timestamped between `YYYY-01-01T00:00:00` and `YYYY-12-31T23:59:59` in the user's timezone.
+   - Monthly goals evaluate activities within `YYYY-MM-01T00:00:00` and `YYYY-MM-LastDayT23:59:59`.
+   - When `include_repeats = 0`, only completions belonging to Cycle 1 are credited toward the goal target.
+5. **Episode Calendar & Catch-Up Lookback**:
+   - Upon server startup, the episode monitor scans followed series for missed episodes within a maximum window of **7 days** (`maxCatchupDays = 7`).
+   - Any episodes aired more than 7 days ago while the server was offline are not converted into catch-up notifications, eliminating notification spam.
+
+---
+
+##  Manual Testing Checklist
+
+Follow this checklist to verify all features in a local browser session:
+
+### 1. Repeat Viewing & Rereading
+- [ ] Add a movie, mark it as watched (Cycle 1 completes). Notice the badge `Cycle 1 • Completed`.
+- [ ] Click the **"🔄 Rewatch"** button. Confirm a new badge appears: `Cycle 2 • In Progress`.
+- [ ] Repeatedly click "Rewatch" and confirm no additional cycles are created.
+- [ ] Mark the movie as watched again. Notice `Cycle 2 • Completed` and total completions in Statistics show `2` while unique shows `1`.
+- [ ] Add a book with 400 pages, mark it completed. Click **"🔄 Reread"**. Verify current page resets to `0` for Cycle 2 while preserving Cycle 1 in history.
+
+### 2. Personal Goals
+- [ ] Navigate to the **Goals** tab. Click **"+ New Goal"**.
+- [ ] Select **"Yearly Books"** with a target of `10`. Confirm the goal card displays `0 / 10 books (0%)`.
+- [ ] Select **"Monthly Pages"** with a target of `500`. Log reading progress on a book and verify the progress bar updates immediately.
+- [ ] Attempt to create a second "Yearly Books" goal for the same year and confirm duplicate prevention rejects it with a clear warning.
+- [ ] Edit the goal target or toggle "Include repeats" and verify progress recalculates accordingly.
+
+### 3. AI Weekly Planner
+- [ ] Navigate to the **Planner** tab.
+- [ ] Enter a time budget (e.g. `"6 hours"` or `"4h 30m"`).
+- [ ] Click **"✨ Generate Weekly Plan"**.
+- [ ] Verify that candidates are drawn **strictly from your library** (unwatched episodes, unread books, unwatched movies).
+- [ ] Verify that total planned time does not exceed your specified budget.
+- [ ] Click **"💾 Save Plan"**. Verify the plan appears under **Saved Plans**.
+- [ ] Inspect your library and confirm that saving the plan did **not** mark any items as watched or read.
+
+### 4. Episode Calendar & Notifications
+- [ ] Add a TV series with upcoming episodes to your library.
+- [ ] Navigate to the **Calendar** tab.
+- [ ] Verify upcoming episodes appear under **Today**, **This Week**, or **Later** with relative countdowns and air times.
+- [ ] Open the series details modal and toggle the **"Notify when new episodes air"** switch off.
+- [ ] Confirm in the calendar and series modal that notification preference persists.
+
+### 5. Activity Log & Corrections
+- [ ] Navigate to the **Statistics** tab and scroll to **Recent Activity**.
+- [ ] Click the **"Edit"** button on an activity entry. Modify the date or pages.
+- [ ] Verify the entry saves and displays the updated value with a correction indicator.
+- [ ] Click **"Delete"** on an activity entry and confirm it is cleanly removed from the log.
+
+---
 ##  Local Setup Guide
 
 ### 1. Prerequisites
@@ -140,12 +254,20 @@ Open your browser and navigate to:
 ### 7. Run Automated Tests
 Execute the complete test suite locally:
 ```bash
-# Run all automated tests (multi-user isolation & change-password suites)
+# Run all 14 automated test suites (300+ checks across all features)
 npm test
 
 # Or run specific test suites individually
-npm run test:multiuser
-npm run test:password
+npm run test:cycles       # Repeat viewing, rereading cycles, and activity history
+npm run test:goals        # Personal goals validation, progress, and repeats
+npm run test:planner      # AI weekly planner candidate selection and budget enforcement
+npm run test:calendar     # Episode calendar agenda and notification preferences
+npm run test:stats        # Personal statistics calculations and activity logging
+npm run test:discover     # Discover page, TMDB integration, and caching
+npm run test:seasons      # TV season overview and episode tracking
+npm run test:progression  # Episode progression and live TVMaze sync
+npm run test:multiuser    # User library isolation & security
+npm run test:password     # Password validation and session revocation
 ```
 
 ---
